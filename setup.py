@@ -10,6 +10,6 @@ setup(name = 'IBMQuantumExperience',
       keywords = ['ibm', 'quantum computer', 'quantum experience'],
       license='MIT',
       install_requires=[
-        'request'
+        'requests'
       ],
       zip_safe=False)
