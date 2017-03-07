@@ -21,7 +21,7 @@ class TestQX(unittest.TestCase):
         Authentication with Quantum Experience Platform
         '''
         api = IBMQuantumExperience(API_TOKEN)
-        credential = api._checkCredentials()
+        credential = api._check_credentials()
         self.assertTrue(credential)
 
     def test_api_last_codes(self):
@@ -29,7 +29,7 @@ class TestQX(unittest.TestCase):
         Check last code by user authenticated
         '''
         api = IBMQuantumExperience(API_TOKEN)
-        self.assertIsNotNone(api.getLastCodes())
+        self.assertIsNotNone(api.get_last_codes())
 
     def test_api_run_experiment(self):
         '''
@@ -39,7 +39,7 @@ class TestQX(unittest.TestCase):
         qasm = "IBMQASM 2.0;\n\ninclude \"qelib1.inc\";\nqreg q[5];\ncreg c[5];\nu2(-4*pi/3,2*pi) q[0];\nu2(-3*pi/2,2*pi) q[0];\nu3(-pi,0,-pi) q[0];\nu3(-pi,0,-pi/2) q[0];\nu2(pi,-pi/2) q[0];\nu3(-pi,0,-pi/2) q[0];\nmeasure q -> c;\n"
         device = 'simulator'
         shots = 1
-        experiment = api.runExperiment(qasm, device, shots)
+        experiment = api.run_experiment(qasm, device, shots)
         self.assertIsNotNone(experiment['status'])
 
     def test_api_run_job(self):
@@ -52,7 +52,7 @@ class TestQX(unittest.TestCase):
         qasms = [qasm1, qasm2]
         device = 'simulator'
         shots = 1
-        job = api.runJob(qasms, device, shots)
+        job = api.run_job(qasms, device, shots)
         self.assertIsNotNone(job['status'])
 
 
