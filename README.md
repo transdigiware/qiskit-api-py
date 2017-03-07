@@ -62,13 +62,13 @@ config = {
 To get the information of a Code, including the last executions about this Code, you only need the codeId:
 
 ```python
-api.getCode("idCode")
+api.get_code("id_code")
 ```
 
 To get the information about the last Codes, including the last executions about these Codes, you only need call:
 
 ```python
-api.getLastCodes()
+api.get_last_codes()
 ```
 
 #### Execution
@@ -76,13 +76,13 @@ api.getLastCodes()
 To get all information (including the Code information) about a specific Execution of a Code, you only need the executionId:
 
 ```python
-api.getExecution("idExecution")
+api.get_execution("id_execution")
 ```
 
 To get only the Result about a specific Execution of a Code, you only need the executionId:
 
 ```python
-api.getResultFromExecution("idExecution")
+api.get_result_from_execution("id_execution")
 ```
 
 #### Running [QASM 2.0](https://github.com/IBM/qiskit-openqasm)
@@ -90,7 +90,7 @@ api.getResultFromExecution("idExecution")
 To execute a [QASM 2.0](https://github.com/IBM/qiskit-openqasm) experiment:
 
 ```python
-api.runExperiment(qasm, device, shots, name=None, timeout=60)
+api.run_experiment(qasm, device, shots, name=None, timeout=60)
 ```
 
 - **qasm**: The QASM 2.0 code to run. Eg: 
@@ -109,7 +109,7 @@ api.runExperiment(qasm, device, shots, name=None, timeout=60)
 To execute jobs about [QASM 2.0](https://github.com/IBM/qiskit-openqasm) experiments:
 
 ```python
-api.runJobs(qasms, device, shots, maxCredits)
+api.run_jobs(qasms, device, shots, max_credits)
 ```
 
 - **qasms**: A list of objects with the QASM 2.0 information. Eg: 
@@ -123,18 +123,18 @@ api.runJobs(qasms, device, shots, maxCredits)
 ```device = 'real' ```
 - **shots**: Number of shots of the experiments. Maximum 8192 shots. Eg:
 ```shots = 1024 ```
-- **maxCredits**: Maximum number of the credits to spend in the executions. If the executions are more expensives, the job is aborted. Eg:
-```maxCredits = 3```
+- **max_credits**: Maximum number of the credits to spend in the executions. If the executions are more expensives, the job is aborted. Eg:
+```max_credits = 3```
 
 To get job information:
 
 ```python
-api.getJob(idJob)
+api.get_job(id_job)
 ```
 
-- **idJob**: The identifier of the Job. Eg: 
+- **id_job**: The identifier of the Job. Eg: 
 ``` 
-    idJob = '9de64f58316db3eb6db6da53bf9135ff'
+    id_job = '9de64f58316db3eb6db6da53bf9135ff'
 ```
 
 
@@ -154,7 +154,7 @@ import numpy as np
 api = IBMQuantumExperience(token)
 def showImageCode(idCode):
     if (idCode):
-        code = api.getImageCode(idCode)
+        code = api.get_image_code(idCode)
         if (code.get('error', None)):
             print("Fail to recovery the Code")
         else:
@@ -191,7 +191,7 @@ def showResultsByExecution(executionRaw):
     else:
         print("Not plotted. Results are: "+str(executionRaw))
 def showResultsByIdExecution(idExecution):
-    execution = api.getResultFromExecution(idExecution)
+    execution = api.get_result_from_execution(idExecution)
     if (execution.get('measure', None)):
         values = execution['measure']['values']
         labels = execution['measure']['labels']
@@ -199,7 +199,7 @@ def showResultsByIdExecution(idExecution):
     else:
         print("Not plotted. Results are: "+str(execution))
 def showLastCodes():
-    codes = api.getLastCodes()
+    codes = api.get_last_codes()
     for code in codes:
         print("--------------------------------")
         print("Code " + code.get('name', 'Unknown'))
