@@ -156,7 +156,7 @@ def showImageCode(idCode):
     if (idCode):
         code = api.get_image_code(idCode)
         if (code.get('error', None)):
-            print("Fail to recovery the Code")
+            print("Failed to recover the Code")
         else:
             display(Image(code['url']))
     else:
