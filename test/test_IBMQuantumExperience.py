@@ -55,12 +55,12 @@ class TestQX(unittest.TestCase):
         job = api.run_job(qasms, device, shots)
         self.assertIsNotNone(job['status'])
 
-    def test_api_chip_available(self):
+    def test_api_device_status(self):
         '''
         Check the status of the real chip
         '''
         api = IBMQuantumExperience(API_TOKEN)
-        is_available = api.chip_available()
+        is_available = api.device_status()
         self.assertIsNotNone(is_available)
 
 

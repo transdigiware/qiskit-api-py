@@ -137,16 +137,16 @@ api.get_job(id_job)
     id_job = '9de64f58316db3eb6db6da53bf9135ff'
 ```
 
-#### Get information about a Chip
+#### Get information about a Device
 
-To know the status (if the chip is running or in maintenance) of a chip (real chip 5Q by default) you can run:
+To know the status (if it is running or in maintenance) of a device (real chip 5Q by default) you can run:
 
 ```python
-api.chip_available(device)
+api.device_status(device)
 ```
 
-- **device**: The chip to get its availability. By default is the 5 Qubits Real Chip. Eg:
-```device='chip_real' ```
+- **device**: The device to get its availability. By default is the 5 Qubits Real Chip. Eg:
+```device='qx5q' ```
 
 
 #### Jupyter

@@ -208,8 +208,13 @@ class IBMQuantumExperience:
         job = self.req.get('/Jobs/' + id_job)
         return job
 
-    def chip_available(self, device='chip_real'):
+    def device_status(self, device='qx5q'):
+        # TODO: Change the 5Q chip name
+        if device == 'qx5q':
+            device = 'chip_real'
         status = self.req.get('/Status/queue?device=' + device, withToken=False)["state"]
+        ret = {}
+        ret['available'] = False
         if status:
-            return True
-        return False
+            ret['available'] = True
+        return ret
