@@ -137,6 +137,16 @@ api.get_job(id_job)
     id_job = '9de64f58316db3eb6db6da53bf9135ff'
 ```
 
+#### Get information about a Chip
+
+To know the status (if the chip is running or in maintenance) of a chip (real chip 5Q by default) you can run:
+
+```python
+api.chip_available(device)
+```
+
+- **device**: The chip to get its availability. By default is the 5 Qubits Real Chip. Eg:
+
 
 #### Jupyter
 
@@ -209,6 +219,14 @@ def showLastCodes():
         for execution in code.get('executions', []):
             showResultsByExecution(execution)
 ```
+
+## Deploy and Test
+
+If you want participate in the project, you can clone the repository and install the dependencies to run it.
+
+You can do a pull request to improve or add any functionality.
+
+You can run the tests under ```test``` folder. See the test/README file to more information.
 
 ## Reference
 

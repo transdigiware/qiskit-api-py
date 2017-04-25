@@ -60,12 +60,21 @@ class _Request:
                 data=data, headers=headers)
         return respond.json()
 
-    def get(self, path, params=''):
+    def get(self, path, params='', withToken=True):
+        if (withToken):
+            access_token = self.credential.get_token()
+            if access_token:
+                access_token = '?access_token=' + str(access_token)
+            else:
+                access_token = ''
+        else:
+            access_token = ''
+
         respond = requests.get(
-            self.credential.config['url'] + path + '?access_token=' + str(self.credential.get_token()) + params)
+            self.credential.config['url'] + path + access_token + params)
         if not self.check_token(respond):
             respond = requests.get(
-                self.credential.config['url'] + path + '?access_token=' + str(self.credential.get_token()) + params)
+                self.credential.config['url'] + path + access_token + params)
         return respond.json()
 
 
@@ -198,3 +207,9 @@ class IBMQuantumExperience:
             return None
         job = self.req.get('/Jobs/' + id_job)
         return job
+
+    def chip_available(self, device='chip_real'):
+        status = self.req.get('/Status/queue?device=' + device, withToken=False)["state"]
+        if status:
+            return True
+        return False

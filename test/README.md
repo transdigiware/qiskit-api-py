@@ -6,8 +6,8 @@ To run the tests (unittest), you need configure the **API_TOKEN** of the Quantum
 API_TOKEN = 'YOUR_API_TOKEN'
 ```
 
-Then, you have to run:
+Then, you have to run under the main directory:
 
 ```
-python test_IBMQuantumExperience.py
+python -m unittest discover -v
 ```
