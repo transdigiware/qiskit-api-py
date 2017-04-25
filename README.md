@@ -146,6 +146,7 @@ api.chip_available(device)
 ```
 
 - **device**: The chip to get its availability. By default is the 5 Qubits Real Chip. Eg:
+```device='chip_real' ```
 
 
 #### Jupyter
