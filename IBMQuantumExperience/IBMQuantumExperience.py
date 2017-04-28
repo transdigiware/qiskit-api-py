@@ -129,7 +129,7 @@ class IBMQuantumExperience:
                             str(self.req.credential.get_user_id()) +
                             '/codes/lastest', '&includeExecutions=true')['codes']
 
-    def run_experiment(self, qasm, device, shots, name=None, timeout=60):
+    def run_experiment(self, qasm, device='simulator', shots=1, name=None, timeout=60):
         if not self._check_credentials():
             return None
         data = {}
@@ -140,9 +140,16 @@ class IBMQuantumExperience:
         if name is None:
             name = 'Experiment #' + datetime.date.today().strftime("%Y%m%d%H%M%S")
         data['name'] = name
-        device_type = 'sim_trivial_2'
-        if device == 'real':
+
+        if device == 'qx5q':
             device_type = 'real'
+        elif device == 'simulator':
+            device_type = 'sim_trivial_2'
+        else:
+            respond = {}
+            respond["error"] = "Device " + device + " not exits in Quantum Experience. Only allow qx5q or simulator"
+            return respond
+
         execution = self.req.post('/codes/execute', '&shots=' + str(shots) + '&deviceRunType=' + device_type,
                                   json.dumps(data))
         respond = {}
@@ -195,9 +202,14 @@ class IBMQuantumExperience:
         data['shots'] = shots
         data['maxCredits'] = max_credits
         data['backend'] = {}
-        data['backend']['name'] = 'simulator'
-        if device == 'real':
+        if device == 'qx5q':
             data['backend']['name'] = 'real'
+        elif device == 'simulator':
+            data['backend']['name'] = 'simulator'
+        else:
+            respond = {}
+            respond["error"] = "Device " + device + " not exits in Quantum Experience. Only allow qx5q or simulator"
+            return respond
 
         job = self.req.post('/Jobs', data=json.dumps(data))
         return job
