@@ -162,7 +162,7 @@ from IPython.display import Image, display
 import matplotlib.pyplot as plt
 import numpy as np
 %matplotlib inline
-api = IBMQuantumExperience(token)
+api = IBMQuantumExperience.IBMQuantumExperience(token)
 def showImageCode(idCode):
     if (idCode):
         code = api.get_image_code(idCode)
