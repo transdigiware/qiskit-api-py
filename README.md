@@ -163,16 +163,18 @@ import matplotlib.pyplot as plt
 import numpy as np
 %matplotlib inline
 api = IBMQuantumExperience.IBMQuantumExperience(token)
-def showImageCode(idCode):
-    if (idCode):
+
+def show_image_code(idCode):
+    if idCode:
         code = api.get_image_code(idCode)
-        if (code.get('error', None)):
+        if code.get('error', None):
             print("Failed to recover the Code")
         else:
             display(Image(code['url']))
     else:
         print("Invalid IdCode")
-def printBars(values, labels):
+
+def print_bars(values, labels):
     N = len(values)
     ind = np.arange(N)  # the x locations for the groups
     width = 0.35       # the width of the bars
@@ -191,34 +193,38 @@ def printBars(values, labels):
                     ha='center', va='bottom')
     autolabel(rects1)
     plt.show()
-def showResultsByExecution(executionRaw):
-    result = executionRaw.get('result', {})
+
+def show_result_by_execution(execution_raw):
+    result = execution_raw.get('result', {})
     data = result.get('data', {})
-    print('Execution in ' + executionRaw.get('deviceRunType', 'Unknown') + ' at ' + executionRaw.get('endDate', 'Unknown'))
-    if (data.get('p', None)):
+    print('Execution in ' + execution_raw.get('deviceRunType', 'Unknown') +
+          ' at ' + execution_raw.get('endDate', 'Unknown'))
+    if data.get('p', None):
         values = data['p']['values']
         labels = data['p']['labels']
-        printBars(values, labels)
+        print_bars(values, labels)
     else:
-        print("Not plotted. Results are: "+str(executionRaw))
-def showResultsByIdExecution(idExecution):
-    execution = api.get_result_from_execution(idExecution)
-    if (execution.get('measure', None)):
+        print("Not plotted. Results are: "+str(execution_raw))
+
+def show_results_by_id_execution(id_execution):
+    execution = api.get_result_from_execution(id_execution)
+    if execution.get('measure', None):
         values = execution['measure']['values']
         labels = execution['measure']['labels']
-        printBars(values, labels)
+        print_bars(values, labels)
     else:
         print("Not plotted. Results are: "+str(execution))
-def showLastCodes():
+
+def show_last_codes():
     codes = api.get_last_codes()
     for code in codes:
         print("--------------------------------")
         print("Code " + code.get('name', 'Unknown'))
         print(" ")
-        showImageCode(code.get('id', None))
+        show_image_code(code.get('id', None))
         print("------- Executions -------------")
         for execution in code.get('executions', []):
-            showResultsByExecution(execution)
+            show_result_by_execution(execution)
 ```
 
 ## Deploy and Test
