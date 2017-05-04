@@ -129,7 +129,7 @@ class IBMQuantumExperience:
                             str(self.req.credential.get_user_id()) +
                             '/codes/lastest', '&includeExecutions=true')['codes']
 
-    def run_experiment(self, qasm, device='simulator', shots=1, name=None, timeout=60):
+    def run_experiment(self, qasm, device='simulator', shots=1, name=None, seed=None, timeout=60):
         if not self._check_credentials():
             return None
         data = {}
@@ -142,6 +142,10 @@ class IBMQuantumExperience:
         data['name'] = name
 
         if device == 'qx5q':
+            if seed:
+                respond = {}
+                respond["error"] = "Not seed allowed in qx5q"
+                return respond
             device_type = 'real'
         elif device == 'simulator':
             device_type = 'sim_trivial_2'
@@ -150,8 +154,15 @@ class IBMQuantumExperience:
             respond["error"] = "Device " + device + " not exits in Quantum Experience. Only allow qx5q or simulator"
             return respond
 
-        execution = self.req.post('/codes/execute', '&shots=' + str(shots) + '&deviceRunType=' + device_type,
-                                  json.dumps(data))
+        if seed:
+            if ((len(str(seed)) < 11) and str(seed).isdigit()):
+                execution = self.req.post('/codes/execute', '&shots=' + str(shots) + '&seed=' + str(seed) + '&deviceRunType=' + device_type, json.dumps(data))
+            else:
+                respond = {}
+                respond["error"] = "Not seed allowed. Max 10 digits."
+                return respond
+        else:
+            execution = self.req.post('/codes/execute', '&shots=' + str(shots) + '&deviceRunType=' + device_type, json.dumps(data))
         respond = {}
         # noinspection PyBroadException
         try:
@@ -161,6 +172,8 @@ class IBMQuantumExperience:
             respond["status"] = status
             respond["idExecution"] = id_execution
             respond["idCode"] = execution["codeId"]
+            if execution["additionalData"]:
+                respond["extraInfo"] = execution["additionalData"]
             if status == "DONE":
                 if execution["result"]:
                     if execution["result"]["data"].get('p', None):
@@ -191,7 +204,7 @@ class IBMQuantumExperience:
             respond["error"] = execution
             return respond
 
-    def run_job(self, qasms, device='simulator', shots=1, max_credits=3):
+    def run_job(self, qasms, device='simulator', shots=1, max_credits=3, seed=None):
         if not self._check_credentials():
             return None
         data = {}
@@ -200,6 +213,17 @@ class IBMQuantumExperience:
             qasm['qasm'] = qasm['qasm'].replace('OPENQASM 2.0;', '')
         data['qasms'] = qasms
         data['shots'] = shots
+        if seed:
+            if device == 'qx5q':
+                respond = {}
+                respond["error"] = "Not seed allowed in qx5q"
+                return respond
+            if ((len(str(seed)) < 11) and str(seed).isdigit()):
+                data['seed'] = seed
+            else:
+                respond = {}
+                respond["error"] = "Not seed allowed. Max 10 digits."
+                return respond
         data['maxCredits'] = max_credits
         data['backend'] = {}
         if device == 'qx5q':
