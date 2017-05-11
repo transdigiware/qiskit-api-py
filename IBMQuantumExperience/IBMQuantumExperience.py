@@ -153,13 +153,13 @@ class IBMQuantumExperience:
             name = 'Experiment #' + datetime.date.today().strftime("%Y%m%d%H%M%S")
         data['name'] = name
 
-        if device == 'qx5qv2':
+        if device == 'IBMQX5qv2':
             device_type = 'real'
         elif device == 'simulator':
             device_type = 'sim_trivial_2'
         else:
             respond = {}
-            respond["error"] = "Device " + device + " not exits in Quantum Experience. Only allow qx5qv2 or simulator"
+            respond["error"] = "Device " + device + " not exits in Quantum Experience. Only allow IBMQX5qv2 or simulator"
             return respond
 
         execution = self.req.post('/codes/execute', '&shots=' + str(shots) + '&deviceRunType=' + device_type,
@@ -185,8 +185,6 @@ class IBMQuantumExperience:
                 return respond
             else:
                 if timeout:
-                    if timeout > 300:
-                        timeout = 300
                     for i in range(1, timeout):
                         print("Waiting for results...")
                         result = self.get_result_from_execution(id_execution)
@@ -216,13 +214,13 @@ class IBMQuantumExperience:
         data['shots'] = shots
         data['maxCredits'] = max_credits
         data['backend'] = {}
-        if device == 'qx5qv2':
+        if device == 'IBMQX5qv2':
             data['backend']['name'] = 'real'
         elif device == 'simulator':
             data['backend']['name'] = 'simulator'
         else:
             respond = {}
-            respond["error"] = "Device " + device + " not exits in Quantum Experience. Only allow qx5qv2 or simulator"
+            respond["error"] = "Device " + device + " not exits in Quantum Experience. Only allow IBMQX5qv2 or simulator"
             return respond
 
         job = self.req.post('/Jobs', data=json.dumps(data))
@@ -236,9 +234,9 @@ class IBMQuantumExperience:
         job = self.req.get('/Jobs/' + id_job)
         return job
 
-    def device_status(self, device='qx5qv2'):
+    def device_status(self, device='IBMQX5qv2'):
         # TODO: Change the 5Q chip name
-        if device == 'qx5qv2':
+        if device == 'IBMQX5qv2':
             device = 'chip_real'
         status = self.req.get('/Status/queue?device=' + device, withToken=False)["state"]
         ret = {}
