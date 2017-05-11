@@ -89,7 +89,9 @@ class IBMQuantumExperience:
 
     def get_execution(self, id_execution):
         if not self._check_credentials():
-            return None
+            respond = {}
+            respond["error"] = "Not credentials valid"
+            return respond
         execution = self.req.get('/Executions/' + id_execution, '')
         if execution["codeId"]:
             execution['code'] = self.get_code(execution["codeId"])
@@ -97,7 +99,9 @@ class IBMQuantumExperience:
 
     def get_result_from_execution(self, id_execution):
         if not self._check_credentials():
-            return None
+            respond = {}
+            respond["error"] = "Not credentials valid"
+            return respond
         execution = self.req.get('/Executions/' + id_execution, '')
         result = {}
         if 'result' in execution:
@@ -110,7 +114,9 @@ class IBMQuantumExperience:
 
     def get_code(self, id_code):
         if not self._check_credentials():
-            return None
+            respond = {}
+            respond["error"] = "Not credentials valid"
+            return respond
         code = self.req.get('/Codes/' + id_code, '')
         executions = self.req.get('/Codes/' + id_code + '/executions', 'filter={"limit":3}')
         if isinstance(executions, list):
@@ -119,19 +125,25 @@ class IBMQuantumExperience:
 
     def get_image_code(self, id_code):
         if not self._check_credentials():
-            return None
+            respond = {}
+            respond["error"] = "Not credentials valid"
+            return respond
         return self.req.get('/Codes/' + id_code + '/export/png/url', '')
 
     def get_last_codes(self):
         if not self._check_credentials():
-            return None
+            respond = {}
+            respond["error"] = "Not credentials valid"
+            return respond
         return self.req.get('/users/' +
                             str(self.req.credential.get_user_id()) +
                             '/codes/lastest', '&includeExecutions=true')['codes']
 
     def run_experiment(self, qasm, device='simulator', shots=1, name=None, timeout=60):
         if not self._check_credentials():
-            return None
+            respond = {}
+            respond["error"] = "Not credentials valid"
+            return respond
         data = {}
         qasm = qasm.replace('IBMQASM 2.0;', '')
         qasm = qasm.replace('OPENQASM 2.0;', '')
@@ -193,7 +205,9 @@ class IBMQuantumExperience:
 
     def run_job(self, qasms, device='simulator', shots=1, max_credits=3):
         if not self._check_credentials():
-            return None
+            respond = {}
+            respond["error"] = "Not credentials valid"
+            return respond
         data = {}
         for qasm in qasms:
             qasm['qasm'] = qasm['qasm'].replace('IBMQASM 2.0;', '')
@@ -216,7 +230,9 @@ class IBMQuantumExperience:
 
     def get_job(self, id_job):
         if not self._check_credentials() or not id_job:
-            return None
+            respond = {}
+            respond["error"] = "Not credentials valid"
+            return respond
         job = self.req.get('/Jobs/' + id_job)
         return job
 
