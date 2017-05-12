@@ -94,15 +94,15 @@ api.run_experiment(qasm, device, shots, name=None, timeout=60)
 ```
 
 - **qasm**: The QASM 2.0 code to run. Eg: 
-``` qasm = 'OPENQASM 2.0;\n\ninclude "qelib1.inc";\nqreg q[5];\ncreg c[5];\nh q[0];\ncx q[0],q[2];\nmeasure q[0] -> c[0];\nmeasure q[2] -> c[1];\n'``
+`` qasm = 'OPENQASM 2.0;\n\ninclude "qelib1.inc";\nqreg q[5];\ncreg c[5];\nh q[0];\ncx q[0],q[2];\nmeasure q[0] -> c[0];\nmeasure q[2] -> c[1];\n'``
 - **device**: Type of device to run the experiment. Only two option possibles: *simulator* or *IBMQX5qv2*, that is the real chip of 5 qubits. Eg:
-```device = 'IBMQX5qv2' ```
+``device = 'IBMQX5qv2' ``
 - **shots**: Number of shots of the experiments. Maximum 8192 shots. Eg:
 ```shots = 1024 ```
 - **name**: Name of the experiment. This paramater is optional, by default the name will be 'Experiment \#YmdHMS'. Eg:
-```name = 'bell state experiment'``
+``name = 'bell state experiment'``
 - **timeout**: Time to wait for the result. The maximum timeout is 300. If the timeout is reached, you obtain the executionId to get the result with the getResultFromExecution method in the future. Eg:
-```timeout = 120``
+``timeout = 120``
 
 #### Running Jobs [QASM 2.0](https://github.com/IBM/qiskit-openqasm)
 
@@ -124,7 +124,7 @@ api.run_jobs(qasms, device, shots, max_credits)
 - **shots**: Number of shots of the experiments. Maximum 8192 shots. Eg:
 ```shots = 1024 ```
 - **max_credits**: Maximum number of the credits to spend in the executions. If the executions are more expensives, the job is aborted. Eg:
-```max_credits = 3```
+``max_credits = 3``
 
 To get job information:
 
