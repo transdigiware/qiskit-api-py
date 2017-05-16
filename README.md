@@ -94,15 +94,15 @@ api.run_experiment(qasm, device, shots, name=None, timeout=60)
 ```
 
 - **qasm**: The QASM 2.0 code to run. Eg: 
-`` qasm = 'OPENQASM 2.0;\n\ninclude "qelib1.inc";\nqreg q[5];\ncreg c[5];\nh q[0];\ncx q[0],q[2];\nmeasure q[0] -> c[0];\nmeasure q[2] -> c[1];\n'``
-- **device**: Type of device to run the experiment. Only two option possibles: *simulator* or *IBMQX5qv2*, that is the real chip of 5 qubits. Eg:
-``device = 'IBMQX5qv2' ``
+``` qasm = 'OPENQASM 2.0;\n\ninclude "qelib1.inc";\nqreg q[5];\ncreg c[5];\nh q[0];\ncx q[0],q[2];\nmeasure q[0] -> c[0];\nmeasure q[2] -> c[1];\n'``
+- **device**: Type of device to run the experiment. Only two option possibles: *simulator* or *ibmqx2*, that is the real chip of 5 qubits. Eg:
+```device = 'ibmqx2' ```
 - **shots**: Number of shots of the experiments. Maximum 8192 shots. Eg:
 ```shots = 1024 ```
 - **name**: Name of the experiment. This paramater is optional, by default the name will be 'Experiment \#YmdHMS'. Eg:
-``name = 'bell state experiment'``
+```name = 'bell state experiment'``
 - **timeout**: Time to wait for the result. The maximum timeout is 300. If the timeout is reached, you obtain the executionId to get the result with the getResultFromExecution method in the future. Eg:
-``timeout = 120``
+```timeout = 120``
 
 #### Running Jobs [QASM 2.0](https://github.com/IBM/qiskit-openqasm)
 
@@ -119,12 +119,12 @@ api.run_jobs(qasms, device, shots, max_credits)
    { 'qasm': 'OPENQASM 2.0;\n\ninclude "qelib1.inc";\nqreg q[5];\ncreg c[5];\nx q[0];\nmeasure q[0] -> c[0];\n'}
 ]
 ```
-- **device**: Type of device to run the experiment. Only two option possibles: *simulator* or *IBMQX5qv2*, that is the real chip of 5 qubits. Eg:
-```device = 'IBMQX5qv2' ```
+- **device**: Type of device to run the experiment. Only two option possibles: *simulator* or *ibmqx2*, that is the real chip of 5 qubits. Eg:
+```device = 'ibmqx2' ```
 - **shots**: Number of shots of the experiments. Maximum 8192 shots. Eg:
 ```shots = 1024 ```
 - **max_credits**: Maximum number of the credits to spend in the executions. If the executions are more expensives, the job is aborted. Eg:
-``max_credits = 3``
+```max_credits = 3```
 
 To get job information:
 
@@ -146,7 +146,7 @@ api.device_status(device)
 ```
 
 - **device**: The device to get its availability. By default is the 5 Qubits Real Chip. Eg:
-```device='IBMQX5qv2' ```
+```device='ibmqx2' ```
 
 
 #### Jupyter
@@ -162,19 +162,17 @@ from IPython.display import Image, display
 import matplotlib.pyplot as plt
 import numpy as np
 %matplotlib inline
-api = IBMQuantumExperience.IBMQuantumExperience(token)
-
-def show_image_code(idCode):
-    if idCode:
+api = IBMQuantumExperience(token)
+def showImageCode(idCode):
+    if (idCode):
         code = api.get_image_code(idCode)
-        if code.get('error', None):
+        if (code.get('error', None)):
             print("Failed to recover the Code")
         else:
             display(Image(code['url']))
     else:
         print("Invalid IdCode")
-
-def print_bars(values, labels):
+def printBars(values, labels):
     N = len(values)
     ind = np.arange(N)  # the x locations for the groups
     width = 0.35       # the width of the bars
@@ -193,38 +191,34 @@ def print_bars(values, labels):
                     ha='center', va='bottom')
     autolabel(rects1)
     plt.show()
-
-def show_result_by_execution(execution_raw):
-    result = execution_raw.get('result', {})
+def showResultsByExecution(executionRaw):
+    result = executionRaw.get('result', {})
     data = result.get('data', {})
-    print('Execution in ' + execution_raw.get('deviceRunType', 'Unknown') +
-          ' at ' + execution_raw.get('endDate', 'Unknown'))
-    if data.get('p', None):
+    print('Execution in ' + executionRaw.get('deviceRunType', 'Unknown') + ' at ' + executionRaw.get('endDate', 'Unknown'))
+    if (data.get('p', None)):
         values = data['p']['values']
         labels = data['p']['labels']
-        print_bars(values, labels)
+        printBars(values, labels)
     else:
-        print("Not plotted. Results are: "+str(execution_raw))
-
-def show_results_by_id_execution(id_execution):
-    execution = api.get_result_from_execution(id_execution)
-    if execution.get('measure', None):
+        print("Not plotted. Results are: "+str(executionRaw))
+def showResultsByIdExecution(idExecution):
+    execution = api.get_result_from_execution(idExecution)
+    if (execution.get('measure', None)):
         values = execution['measure']['values']
         labels = execution['measure']['labels']
-        print_bars(values, labels)
+        printBars(values, labels)
     else:
         print("Not plotted. Results are: "+str(execution))
-
-def show_last_codes():
+def showLastCodes():
     codes = api.get_last_codes()
     for code in codes:
         print("--------------------------------")
         print("Code " + code.get('name', 'Unknown'))
         print(" ")
-        show_image_code(code.get('id', None))
+        showImageCode(code.get('id', None))
         print("------- Executions -------------")
         for execution in code.get('executions', []):
-            show_result_by_execution(execution)
+            showResultsByExecution(execution)
 ```
 
 ## Deploy and Test
