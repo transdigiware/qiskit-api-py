@@ -79,8 +79,36 @@ class _Request:
 
 
 class IBMQuantumExperience:
+
+    __names_device_5qxv2 = ['ibmqx5qv2', 'ibmqx2', 'qx5qv2', 'qx5q', 'real']
+    __names_device_5qxv3 = ['ibmqx3']
+    __names_device_simulator = ['simulator']
+
     def __init__(self, token, config=None):
         self.req = _Request(token, config)
+
+    def _check_device(self, device, endpoint):
+        device = device.lower()
+        if endpoint == 'experiment':
+            if device in self.__names_device_5qxv2:
+                return 'real'
+            elif device in self.__names_device_5qxv3:
+                return 'ibmqx3'
+            elif device in self.__names_device_simulator:
+                return 'sim_trivial_2'
+        elif endpoint == 'job':
+            if device in self.__names_device_5qxv2:
+                return 'real'
+            elif device in self.__names_device_5qxv3:
+                return 'ibmqx3'
+            elif device in self.__names_device_simulator:
+                return 'simulator'
+        elif endpoint == 'status':
+            if device in self.__names_device_5qxv2:
+                return 'chip_real'
+            elif device in self.__names_device_5qxv3:
+                return 'ibmqx3'
+        return None
 
     def _check_credentials(self):
         if not self.req.credential.get_token():
@@ -153,13 +181,11 @@ class IBMQuantumExperience:
             name = 'Experiment #' + datetime.date.today().strftime("%Y%m%d%H%M%S")
         data['name'] = name
 
-        if device == 'IBMQX5qv2':
-            device_type = 'real'
-        elif device == 'simulator':
-            device_type = 'sim_trivial_2'
-        else:
+        device_type = self._check_device(device, 'experiment')
+
+        if not device_type:
             respond = {}
-            respond["error"] = "Device " + device + " not exits in Quantum Experience. Only allow IBMQX5qv2 or simulator"
+            respond["error"] = "Device " + device + " not exits in Quantum Experience. Only allow ibmqx2 or simulator"
             return respond
 
         execution = self.req.post('/codes/execute', '&shots=' + str(shots) + '&deviceRunType=' + device_type,
@@ -214,14 +240,15 @@ class IBMQuantumExperience:
         data['shots'] = shots
         data['maxCredits'] = max_credits
         data['backend'] = {}
-        if device == 'IBMQX5qv2':
-            data['backend']['name'] = 'real'
-        elif device == 'simulator':
-            data['backend']['name'] = 'simulator'
-        else:
+
+        device_type = self._check_device(device, 'job')
+
+        if not device_type:
             respond = {}
-            respond["error"] = "Device " + device + " not exits in Quantum Experience. Only allow IBMQX5qv2 or simulator"
+            respond["error"] = "Device " + device + " not exits in Quantum Experience. Only allow ibmqx2 or simulator"
             return respond
+
+        data['backend']['name'] = device_type
 
         job = self.req.post('/Jobs', data=json.dumps(data))
         return job
@@ -234,11 +261,13 @@ class IBMQuantumExperience:
         job = self.req.get('/Jobs/' + id_job)
         return job
 
-    def device_status(self, device='IBMQX5qv2'):
-        # TODO: Change the 5Q chip name
-        if device == 'IBMQX5qv2':
-            device = 'chip_real'
-        status = self.req.get('/Status/queue?device=' + device, withToken=False)["state"]
+    def device_status(self, device='ibmqx2'):
+        device_type = self._check_device(device, 'status')
+        if not device_type:
+            respond = {}
+            respond["error"] = "Device " + device + " not exits in Quantum Experience Real Devices. Only allow ibmqx2"
+            return respond
+        status = self.req.get('/Status/queue?device=' + device_type, withToken=False)["state"]
         ret = {}
         ret['available'] = False
         if status:
