@@ -33,7 +33,7 @@ class _Credentials(object):
                                                     self.token_unique}).json()
 
         if not self.get_token():
-            print 'ERROR: Not token valid'
+            print('ERROR: Not token valid')
 
     def get_token(self):
         '''
@@ -111,8 +111,8 @@ class IBMQuantumExperience(object):
     '''
     The Connector Class to do request to QX Platform
     '''
-    __names_device_5qxv2 = ['ibmqx5qv2', 'ibmqx2', 'qx5qv2', 'qx5q', 'real']
-    __names_device_5qxv3 = ['ibmqx3']
+    __names_device_ibmqxv2 = ['ibmqx5qv2', 'ibmqx2', 'qx5qv2', 'qx5q', 'real']
+    __names_device_ibmqxv3 = ['ibmqx3']
     __names_device_simulator = ['simulator', 'sim_trivial_2']
 
     def __init__(self, token, config=None):
@@ -124,28 +124,28 @@ class IBMQuantumExperience(object):
         '''
         device = device.lower()
         if endpoint == 'experiment':
-            if device in self.__names_device_5qxv2:
+            if device in self.__names_device_ibmqxv2:
                 return 'real'
-            elif device in self.__names_device_5qxv3:
+            elif device in self.__names_device_ibmqxv3:
                 return 'ibmqx3'
             elif device in self.__names_device_simulator:
                 return 'sim_trivial_2'
         elif endpoint == 'job':
-            if device in self.__names_device_5qxv2:
+            if device in self.__names_device_ibmqxv2:
                 return 'real'
-            elif device in self.__names_device_5qxv3:
+            elif device in self.__names_device_ibmqxv3:
                 return 'ibmqx3'
             elif device in self.__names_device_simulator:
                 return 'simulator'
         elif endpoint == 'status':
-            if device in self.__names_device_5qxv2:
+            if device in self.__names_device_ibmqxv2:
                 return 'chip_real'
-            elif device in self.__names_device_5qxv3:
+            elif device in self.__names_device_ibmqxv3:
                 return 'ibmqx3'
         elif endpoint == 'calibration':
-            if device in self.__names_device_5qxv2:
+            if device in self.__names_device_ibmqxv2:
                 return 'Real5Qv2'
-            elif device in self.__names_device_5qxv3:
+            elif device in self.__names_device_ibmqxv3:
                 return 'ibmqx3'
         return None
 
@@ -280,7 +280,7 @@ class IBMQuantumExperience(object):
             else:
                 if timeout:
                     for _ in range(1, timeout):
-                        print "Waiting for results..."
+                        print("Waiting for results...")
                         result = self.get_result_from_execution(id_execution)
                         if result:
                             respond["status"] = 'DONE'
