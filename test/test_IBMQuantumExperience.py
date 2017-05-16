@@ -83,11 +83,20 @@ class TestQX(unittest.TestCase):
 
     def test_api_device_status(self):
         '''
-        Check the status of the real chip
+        Check the status of a real chip
         '''
         api = IBMQuantumExperience(API_TOKEN)
         is_available = api.device_status()
         self.assertIsNotNone(is_available)
+
+    def test_api_device_calibration(self):
+        '''
+        Check the calibration of a real chip
+        '''
+        api = IBMQuantumExperience(API_TOKEN)
+        calibration = api.device_calibration()
+        self.assertIsNotNone(calibration)
+
 
 
 if __name__ == '__main__':
