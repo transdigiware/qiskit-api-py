@@ -148,6 +148,17 @@ api.device_status(device)
 - **device**: The device to get its availability. By default is the 5 Qubits Real Chip. Eg:
 ```device='ibmqx2' ```
 
+#### Get Calibration of a Device
+
+To know the last calibration of a device (real chip 5Q by default) you can run:
+
+```python
+api.device_calibration(device)
+```
+
+- **device**: The device to get its last calibration. By default is the 5 Qubits Real Chip. Eg:
+```device='ibmqx2' ```
+
 
 #### Jupyter
 
