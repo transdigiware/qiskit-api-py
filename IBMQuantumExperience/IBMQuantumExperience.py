@@ -180,11 +180,13 @@ class IBMQuantumExperience(object):
             return respond
         execution = self.req.get('/Executions/' + id_execution, '')
         result = {}
-        if 'result' in execution:
+        if "result" in execution and "data" in execution["result"]:
             if execution["result"]["data"].get('p', None):
                 result["measure"] = execution["result"]["data"]["p"]
             if execution["result"]["data"].get('valsxyz', None):
                 result["bloch"] = execution["result"]["data"]["valsxyz"]
+            if "additionalData" in execution["result"]["data"]:
+                result["extraInfo"] = execution["result"]["data"]["additionalData"]
 
         return result
 
@@ -227,7 +229,7 @@ class IBMQuantumExperience(object):
                             '&includeExecutions=true')['codes']
 
     def run_experiment(self, qasm, device='simulator', shots=1, name=None,
-                       timeout=60):
+                       seed=None, timeout=60):
         '''
         Execute an experiment
         '''
@@ -254,11 +256,29 @@ class IBMQuantumExperience(object):
                                    " Only allow ibmqx2 or simulator")
             return respond
 
-        execution = self.req.post('/codes/execute', str('&shots=' +
-                                                        str(shots) +
-                                                        '&deviceRunType=' +
-                                                        device_type),
-                                  json.dumps(data))
+        if (device not in self.__names_device_simulator) and seed:
+            respond = {}
+            respond["error"] = "Not seed allowed in " + device
+            return respond
+
+        if (seed and len(str(seed)) < 11) and str(seed).isdigit():
+            execution = self.req.post('/codes/execute', str('&shots=' +
+                                                            str(shots) +
+                                                            '&seed=' +
+                                                            str(seed) +
+                                                            '&deviceRunType=' +
+                                                            device_type),
+                                      json.dumps(data))
+        elif seed:
+            respond = {}
+            respond["error"] = "Not seed allowed. Max 10 digits."
+            return respond
+        else:
+            execution = self.req.post('/codes/execute', str('&shots=' +
+                                                            str(shots) +
+                                                            '&deviceRunType=' +
+                                                            device_type),
+                                      json.dumps(data))
         respond = {}
         try:
             status = execution["status"]["id"]
@@ -267,13 +287,17 @@ class IBMQuantumExperience(object):
             respond["status"] = status
             respond["idExecution"] = id_execution
             respond["idCode"] = execution["codeId"]
+
             if status == "DONE":
-                if execution["result"]:
+                if "result" in execution and "data" in execution["result"]:
+                    if "additionalData" in execution["result"]["data"]:
+                        result["extraInfo"] = execution["result"]["data"]["additionalData"]
                     if execution["result"]["data"].get('p', None):
                         result["measure"] = execution["result"]["data"]["p"]
                     if execution["result"]["data"].get('valsxyz', None):
                         result["bloch"] = execution["result"]["data"]["valsxyz"]
                     respond["result"] = result
+
                     return respond
             elif status == "ERROR":
                 return respond
@@ -295,7 +319,8 @@ class IBMQuantumExperience(object):
             respond["error"] = execution
             return respond
 
-    def run_job(self, qasms, device='simulator', shots=1, max_credits=3):
+    def run_job(self, qasms, device='simulator', shots=1,
+                max_credits=3, seed=None):
         '''
         Execute a job
         '''
@@ -319,6 +344,18 @@ class IBMQuantumExperience(object):
             respond["error"] = str("Device " + device +
                                    " not exits in Quantum Experience" +
                                    " Real Devices. Only allow ibmqx2")
+            return respond
+
+        if (device not in self.__names_device_simulator) and seed:
+            respond = {}
+            respond["error"] = "Not seed allowed in " + device
+            return respond
+
+        if (seed and len(str(seed)) < 11) and str(seed).isdigit():
+            data['seed'] = seed
+        elif seed:
+            respond = {}
+            respond["error"] = "Not seed allowed. Max 10 digits."
             return respond
 
         data['backend']['name'] = device_type
