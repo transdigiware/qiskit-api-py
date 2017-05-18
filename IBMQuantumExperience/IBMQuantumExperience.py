@@ -113,7 +113,8 @@ class IBMQuantumExperience(object):
     '''
     __names_device_ibmqxv2 = ['ibmqx5qv2', 'ibmqx2', 'qx5qv2', 'qx5q', 'real']
     __names_device_ibmqxv3 = ['ibmqx3']
-    __names_device_simulator = ['simulator', 'sim_trivial_2', "ibmqx_qasm_simulator"]
+    __names_device_simulator = ['simulator', 'sim_trivial_2',
+                                'ibmqx_qasm_simulator']
 
     def __init__(self, token, config=None):
         self.req = _Request(token, config)
