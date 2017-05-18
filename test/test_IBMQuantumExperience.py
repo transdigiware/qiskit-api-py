@@ -44,6 +44,18 @@ class TestQX(unittest.TestCase):
         experiment = api.run_experiment(qasm, device, shots)
         self.assertIsNotNone(experiment['status'])
 
+    def test_api_run_experiment_with_seed(self):
+        '''
+        Check run an experiment with seed by user authenticated
+        '''
+        api = IBMQuantumExperience(API_TOKEN)
+        qasm = "IBMQASM 2.0;\n\ninclude \"qelib1.inc\";\nqreg q[5];\ncreg c[5];\nu2(-4*pi/3,2*pi) q[0];\nu2(-3*pi/2,2*pi) q[0];\nu3(-pi,0,-pi) q[0];\nu3(-pi,0,-pi/2) q[0];\nu2(pi,-pi/2) q[0];\nu3(-pi,0,-pi/2) q[0];\nmeasure q -> c;\n"
+        device = 'simulator'
+        shots = 1
+        seed = 815
+        experiment = api.run_experiment(qasm, device, shots, seed=seed)
+        self.assertEqual(int(experiment['result']['extraInfo']['seed']), seed)
+
     def test_api_run_experiment_fail_device(self):
         '''
         Check run an experiment by user authenticated is not runned because the device is not exist
@@ -96,8 +108,6 @@ class TestQX(unittest.TestCase):
         api = IBMQuantumExperience(API_TOKEN)
         calibration = api.device_calibration()
         self.assertIsNotNone(calibration)
-
-
 
 if __name__ == '__main__':
     suite = unittest.TestLoader().loadTestsFromTestCase(TestQX)
