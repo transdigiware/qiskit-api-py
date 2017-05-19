@@ -344,7 +344,7 @@ class IBMQuantumExperience(object):
             respond = {}
             respond["error"] = str("Device " + device +
                                    " not exits in Quantum Experience" +
-                                   " Real Devices. Only allow ibmqx2")
+                                   " . Only allow ibmqx2 or simulator")
             return respond
 
         if (device not in self.__names_device_simulator) and seed:
