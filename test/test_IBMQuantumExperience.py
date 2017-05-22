@@ -109,6 +109,14 @@ class TestQX(unittest.TestCase):
         calibration = api.device_calibration()
         self.assertIsNotNone(calibration)
 
+    def test_api_devices_availables(self):
+        '''
+        Check the devices availables
+        '''
+        api = IBMQuantumExperience(API_TOKEN)
+        devices = api.available_devices()
+        self.assertGreaterEqual(len(devices), 2)
+
 if __name__ == '__main__':
     suite = unittest.TestLoader().loadTestsFromTestCase(TestQX)
     unittest.TextTestRunner(verbosity=2).run(suite)

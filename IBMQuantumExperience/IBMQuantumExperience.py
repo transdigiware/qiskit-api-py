@@ -143,6 +143,8 @@ class IBMQuantumExperience(object):
                 return 'chip_real'
             elif device in self.__names_device_ibmqxv3:
                 return 'ibmqx3'
+            elif device in self.__names_device_simulator:
+                return 'chip_simulator'
         elif endpoint == 'calibration':
             if device in self.__names_device_ibmqxv2:
                 return 'Real5Qv2'
@@ -343,8 +345,8 @@ class IBMQuantumExperience(object):
         if not device_type:
             respond = {}
             respond["error"] = str("Device " + device +
-                                   " not exits in Quantum Experience" +
-                                   " . Only allow ibmqx2 or simulator")
+                                   " not exits in Quantum Experience." +
+                                   "Only allow ibmqx2 or simulator")
             return respond
 
         if (device not in self.__names_device_simulator) and seed:
@@ -383,8 +385,8 @@ class IBMQuantumExperience(object):
         if not device_type:
             respond = {}
             respond["error"] = str("Device " + device +
-                                   " not exits in Quantum Experience" +
-                                   " Real Devices. Only allow ibmqx2")
+                                   " not exits in Quantum Experience." +
+                                   "Only allow ibmqx2 or simulator")
             return respond
         status = self.req.get('/Status/queue?device=' + device_type,
                               with_token=False)["state"]
@@ -413,3 +415,34 @@ class IBMQuantumExperience(object):
         ret = self.req.get('/DeviceStats/statsByDevice/' + device_type,
                            '&raw=true')
         return ret
+
+    def available_devices(self):
+        '''
+        Get the devices availables to use in the QX Platform
+        '''
+        if not self._check_credentials():
+            respond = {}
+            respond["error"] = "Not credentials valid"
+            return respond
+
+        devices_real = self.req.get('/Devices/list')
+        respond = []
+        sim = {}
+        sim["name"] = "simulator"
+        sim["type"] = "Simulator"
+        sim["num_qubits"] = 24
+        respond.append(sim)
+        for device in devices_real:
+            real = {}
+            real["type"] = "Real"
+            real["name"] = device["serialNumber"]
+            if real["name"] == 'Real5Qv2':
+                real["name"] = 'ibmqx2'
+            topology = self.req.get('/Topologies/'+device["topologyId"])
+            if (("topology" in topology) and
+                    ("adjacencyMatrix" in topology["topology"])):
+                real["topology"] = topology["topology"]["adjacencyMatrix"]
+            real["num_qubits"] = topology["qubits"]
+            respond.append(real)
+
+        return respond

@@ -159,6 +159,14 @@ api.device_calibration(device)
 - **device**: The device to get its last calibration. By default is the 5 Qubits Real Chip. Eg:
 ```device='ibmqx2' ```
 
+#### Get Availables Devices
+
+To know the devices where you can run (by name):
+
+```python
+api.available_devices()
+```
+
 
 #### Jupyter
 
