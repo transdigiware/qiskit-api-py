@@ -472,7 +472,7 @@ class IBMQuantumExperience(object):
         ret = self.req.get('/DeviceStats/statsByDevice/' + device_type,
                            '&raw=true')
 
-        if device == 'Real5Qv2':
+        if device_type == 'Real5Qv2':
             device = 'ibmqx2'
         ret = self._beautify_calibration(ret, device)
         return ret
