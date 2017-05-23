@@ -178,7 +178,7 @@ class IBMQuantumExperience(object):
                             unit = "K"
                         units['fridgeTemperature'] = unit
                     if 'date' in attr:
-                        calibration_date = attr['date']
+                        calibration_date = str(attr['date'])
             elif key.startswith('Q'):
                 new_key = 'Q' + str(int(key.replace('Q', '')) - 1)
                 ret[new_key] = {}
@@ -186,7 +186,7 @@ class IBMQuantumExperience(object):
                     if 'label' in attr:
                         if attr['label'].startswith("f") and 'value' in attr:
                             ret[new_key]['frequency'] = float(attr['value'])
-                            units['frequency'] = attr['units']
+                            units['frequency'] = str(attr['units'])
                         if attr['label'].startswith("t_1") and 'value' in attr:
                             ret[new_key]['t1'] = float(attr['value'])
                             unit = attr['units']
@@ -207,6 +207,7 @@ class IBMQuantumExperience(object):
 
         # TODO: Get from new calibrations files
         ret['singleQubitGateTime'] = 80
+        ret['units'] = units
 
         return {"backend": ret}
 
@@ -223,9 +224,10 @@ class IBMQuantumExperience(object):
                 qubits = key.replace('CR', '').split('_')
                 qubit_from = int(qubits[0])-1
                 qubit_to = int(qubits[1])-1
-                if qubit_from not in coupling_map:
-                    coupling_map[qubit_from] = []
-                coupling_map[qubit_from].append(qubit_to)
+                key_qubit = str(qubit_from)
+                if key_qubit not in coupling_map:
+                    coupling_map[key_qubit] = []
+                coupling_map[key_qubit].append(qubit_to)
                 new_key = 'CX' + str(qubit_from) + "_" + str(qubit_to)
                 ret[new_key] = {}
                 for attr in cals[key]:
@@ -233,7 +235,7 @@ class IBMQuantumExperience(object):
                         if attr['label'].startswith("e_g") and 'value' in attr:
                             ret[new_key]['gateError'] = float(attr['value'])
                     if not calibration_date and 'date' in attr:
-                        calibration_date = attr['date']
+                        calibration_date = str(attr['date'])
             elif key.startswith('Q'):
                 new_key = 'Q' + str(int(key.replace('Q', ''))-1)
                 ret[new_key] = {}
@@ -244,7 +246,7 @@ class IBMQuantumExperience(object):
                         if attr['label'].startswith("e_r") and 'value' in attr:
                             ret[new_key]['readoutError'] = float(attr['value'])
                     if not calibration_date and 'date' in attr:
-                        calibration_date = attr['date']
+                        calibration_date = str(attr['date'])
 
         if calibration_date:
             ret['calibrationStartTime'] = calibration_date
