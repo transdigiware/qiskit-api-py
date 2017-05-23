@@ -160,6 +160,63 @@ class IBMQuantumExperience(object):
             return False
         return True
 
+    def _beautify_calibration(self, cals, device):
+        '''
+        Beautify the calibrations returned by QX platform
+        '''
+        ret = {}
+        ret['name'] = device
+        calibration_date = None
+        coupling_map = {}
+        for key in cals:
+            if key == 'fridge_temperature':
+                for attr in cals[key]:
+                    if 'value' in attr:
+                        ret['fridgeTemperature'] = float(attr['value'])
+                    if 'date' in attr:
+                        calibration_date = attr['date']
+            elif key.startswith('CR'):
+                qubits = key.replace('CR', '').split('_')
+                qubit_from = int(qubits[0])
+                qubit_to = int(qubits[1])
+                if qubit_from not in coupling_map:
+                    coupling_map[qubit_from] = []
+                coupling_map[qubit_from].append(qubit_to)
+                new_key = key.replace('CR', 'CX')
+                ret[new_key] = {}
+                for attr in cals[key]:
+                    if 'label' in attr:
+                        if attr['label'].startswith("e_g") and 'value' in attr:
+                            ret[new_key]['gateError'] = float(attr['value'])
+                    if not calibration_date and 'date' in attr:
+                        calibration_date = attr['date']
+            elif key.startswith('Q'):
+                ret[key] = {}
+                for attr in cals[key]:
+                    if 'label' in attr:
+                        if attr['label'].startswith("f") and 'value' in attr:
+                            ret[key]['frecuency'] = float(attr['value'])
+                        if attr['label'].startswith("t_1") and 'value' in attr:
+                            ret[key]['t1'] = float(attr['value'])
+                        if attr['label'].startswith("t_2") and 'value' in attr:
+                            ret[key]['t2'] = float(attr['value'])
+                        if attr['label'].startswith("e_g") and 'value' in attr:
+                            ret[key]['gateError'] = float(attr['value'])
+                        if attr['label'].startswith("e_r") and 'value' in attr:
+                            ret[key]['readoutError'] = float(attr['value'])
+                    if not calibration_date and 'date' in attr:
+                        calibration_date = attr['date']
+
+        if calibration_date:
+            ret['calibrationStartTime'] = calibration_date
+
+        if coupling_map:
+            ret['couplingMap'] = coupling_map
+
+        # ret['singleQubitGateTime']
+
+        return ret
+
     def get_execution(self, id_execution):
         '''
         Get a execution, by its id
@@ -414,6 +471,10 @@ class IBMQuantumExperience(object):
             return respond
         ret = self.req.get('/DeviceStats/statsByDevice/' + device_type,
                            '&raw=true')
+
+        if device == 'Real5Qv2':
+            device = 'ibmqx2'
+        ret = self._beautify_calibration(ret, device)
         return ret
 
     def available_devices(self):
