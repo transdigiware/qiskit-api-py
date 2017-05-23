@@ -156,6 +156,14 @@ To know the last calibration of a device (real chip 5Q by default) you can run:
 api.device_calibration(device)
 ```
 
+#### Get Calibration of a Device
+
+To know the last parameters of calibration of a device (real chip 5Q by default) you can run:
+
+```python
+api.device_parameters(device)
+```
+
 - **device**: The device to get its last calibration. By default is the 5 Qubits Real Chip. Eg:
 ```device='ibmqx2' ```
 

@@ -160,6 +160,56 @@ class IBMQuantumExperience(object):
             return False
         return True
 
+    def _beautify_calibration_parameters(self, cals, device):
+        '''
+        Beautify the calibrations returned by QX platform
+        '''
+        ret = {}
+        ret['name'] = device
+        calibration_date = None
+        units = {}
+        for key in cals:
+            if key == 'fridge_temperature':
+                for attr in cals[key]:
+                    if 'value' in attr:
+                        ret['fridgeTemperature'] = float(attr['value'])
+                        unit = attr['units']
+                        if unit == 'Kelvin':
+                            unit = "K"
+                        units['fridgeTemperature'] = unit
+                    if 'date' in attr:
+                        calibration_date = attr['date']
+            elif key.startswith('Q'):
+                new_key = 'Q' + str(int(key.replace('Q', '')) - 1)
+                ret[new_key] = {}
+                for attr in cals[key]:
+                    if 'label' in attr:
+                        if attr['label'].startswith("f") and 'value' in attr:
+                            ret[new_key]['frequency'] = float(attr['value'])
+                            units['frequency'] = attr['units']
+                        if attr['label'].startswith("t_1") and 'value' in attr:
+                            ret[new_key]['t1'] = float(attr['value'])
+                            unit = attr['units']
+                            if unit == 'microseconds':
+                                unit = "us"
+                            units['tx'] = unit
+                        if attr['label'].startswith("t_2") and 'value' in attr:
+                            ret[new_key]['t2'] = float(attr['value'])
+                            unit = attr['units']
+                            if unit == 'microseconds':
+                                unit = "us"
+                            units['tx'] = unit
+                    if not calibration_date and 'date' in attr:
+                        calibration_date = attr['date']
+
+        if calibration_date:
+            ret['coherenceStartTime'] = calibration_date
+
+        # TODO: Get from new calibrations files
+        ret['singleQubitGateTime'] = 80
+
+        return {"backend": ret}
+
     def _beautify_calibration(self, cals, device):
         '''
         Beautify the calibrations returned by QX platform
@@ -169,20 +219,14 @@ class IBMQuantumExperience(object):
         calibration_date = None
         coupling_map = {}
         for key in cals:
-            if key == 'fridge_temperature':
-                for attr in cals[key]:
-                    if 'value' in attr:
-                        ret['fridgeTemperature'] = float(attr['value'])
-                    if 'date' in attr:
-                        calibration_date = attr['date']
-            elif key.startswith('CR'):
+            if key.startswith('CR'):
                 qubits = key.replace('CR', '').split('_')
-                qubit_from = int(qubits[0])
-                qubit_to = int(qubits[1])
+                qubit_from = int(qubits[0])-1
+                qubit_to = int(qubits[1])-1
                 if qubit_from not in coupling_map:
                     coupling_map[qubit_from] = []
                 coupling_map[qubit_from].append(qubit_to)
-                new_key = key.replace('CR', 'CX')
+                new_key = 'CX' + str(qubit_from) + "_" + str(qubit_to)
                 ret[new_key] = {}
                 for attr in cals[key]:
                     if 'label' in attr:
@@ -191,19 +235,14 @@ class IBMQuantumExperience(object):
                     if not calibration_date and 'date' in attr:
                         calibration_date = attr['date']
             elif key.startswith('Q'):
-                ret[key] = {}
+                new_key = 'Q' + str(int(key.replace('Q', ''))-1)
+                ret[new_key] = {}
                 for attr in cals[key]:
                     if 'label' in attr:
-                        if attr['label'].startswith("f") and 'value' in attr:
-                            ret[key]['frecuency'] = float(attr['value'])
-                        if attr['label'].startswith("t_1") and 'value' in attr:
-                            ret[key]['t1'] = float(attr['value'])
-                        if attr['label'].startswith("t_2") and 'value' in attr:
-                            ret[key]['t2'] = float(attr['value'])
                         if attr['label'].startswith("e_g") and 'value' in attr:
-                            ret[key]['gateError'] = float(attr['value'])
+                            ret[new_key]['gateError'] = float(attr['value'])
                         if attr['label'].startswith("e_r") and 'value' in attr:
-                            ret[key]['readoutError'] = float(attr['value'])
+                            ret[new_key]['readoutError'] = float(attr['value'])
                     if not calibration_date and 'date' in attr:
                         calibration_date = attr['date']
 
@@ -213,9 +252,7 @@ class IBMQuantumExperience(object):
         if coupling_map:
             ret['couplingMap'] = coupling_map
 
-        # ret['singleQubitGateTime']
-
-        return ret
+        return {"backend": ret}
 
     def get_execution(self, id_execution):
         '''
@@ -475,6 +512,30 @@ class IBMQuantumExperience(object):
         if device_type == 'Real5Qv2':
             device = 'ibmqx2'
         ret = self._beautify_calibration(ret, device)
+        return ret
+
+    def device_parameters(self, device='ibmqx2'):
+        '''
+        Get the parameters of calibration of a real chip
+        '''
+        if not self._check_credentials():
+            respond = {}
+            respond["error"] = "Not credentials valid"
+            return respond
+        device_type = self._check_device(device, 'calibration')
+        if not device_type:
+            respond = {}
+            respond["error"] = str("Device " +
+                                   device +
+                                   " not exits in Quantum Experience" +
+                                   " Real Devices. Only allow ibmqx2")
+            return respond
+        ret = self.req.get('/DeviceStats/statsByDevice/' + device_type,
+                           '&raw=true')
+
+        if device_type == 'Real5Qv2':
+            device = 'ibmqx2'
+        ret = self._beautify_calibration_parameters(ret, device)
         return ret
 
     def available_devices(self):

@@ -109,6 +109,14 @@ class TestQX(unittest.TestCase):
         calibration = api.device_calibration()
         self.assertIsNotNone(calibration)
 
+    def test_api_device_parameters(self):
+        '''
+        Check the parameters of calibration of a real chip
+        '''
+        api = IBMQuantumExperience(API_TOKEN)
+        calibration = api.device_parameters()
+        self.assertIsNotNone(calibration)
+
     def test_api_devices_availables(self):
         '''
         Check the devices availables
