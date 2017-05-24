@@ -2,7 +2,7 @@
 
 The official API Client to use [IBM Quantum Experience](https://quantumexperience.ng.bluemix.net/) in Python.
 
-This package can be use in [Jupyter Notebook](https://jupyter.org/).
+This package can be used in [Jupyter Notebook](https://jupyter.org/).
 
 * [Installation](#installation)
 * [Getting Started](#getting-started)
@@ -109,7 +109,7 @@ api.run_experiment(qasm, device, shots, name=None, timeout=60)
 To execute jobs about [QASM 2.0](https://github.com/IBM/qiskit-openqasm) experiments:
 
 ```python
-api.run_jobs(qasms, device, shots, max_credits)
+api.run_job(qasms, device, shots, max_credits)
 ```
 
 - **qasms**: A list of objects with the QASM 2.0 information. Eg: 
@@ -156,7 +156,7 @@ To know the last calibration of a device (real chip 5Q by default) you can run:
 api.device_calibration(device)
 ```
 
-#### Get Calibration of a Device
+#### Get Parameters Calibration of a Device
 
 To know the last parameters of calibration of a device (real chip 5Q by default) you can run:
 
@@ -167,7 +167,7 @@ api.device_parameters(device)
 - **device**: The device to get its last calibration. By default is the 5 Qubits Real Chip. Eg:
 ```device='ibmqx2' ```
 
-#### Get Availables Devices
+#### Get Available Devices
 
 To know the devices where you can run (by name):
 
