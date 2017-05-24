@@ -35,10 +35,16 @@ or, if you want the standard output, one could even use the exclamation bang:
 
 Now it's time to begin doing real work with Python and IBM Quantum Experience.
 
-First, import our API Client:
+First, import our API Client (Python 2):
 
 ```python
 from IBMQuantumExperience import IBMQuantumExperience
+```
+
+In Python 3, you need import using:
+
+```python
+from IBMQuantumExperience.IBMQuantumExperience import IBMQuantumExperience
 ```
 
 Then, initialize your IBM Quantum Experience connection by supplying your *token*. You can obtain the token from **Account** area of *Quantum Experience Platform* in *Personal Access Token* section. An optional object knows as *config* has several extra options to customize, like the url of the API:
