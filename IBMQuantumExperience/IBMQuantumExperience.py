@@ -387,6 +387,9 @@ class IBMQuantumExperience(object):
             respond["idExecution"] = id_execution
             respond["idCode"] = execution["codeId"]
 
+            if 'infoQueue' in execution:
+                respond['infoQueue'] = execution['infoQueue']
+
             if status == "DONE":
                 if "result" in execution and "data" in execution["result"]:
                     if "additionalData" in execution["result"]["data"]:
@@ -396,9 +399,11 @@ class IBMQuantumExperience(object):
                     if execution["result"]["data"].get('valsxyz', None):
                         result["bloch"] = execution["result"]["data"]["valsxyz"]
                     respond["result"] = result
+                    respond.pop('infoQueue', None)
 
                     return respond
             elif status == "ERROR":
+                respond.pop('infoQueue', None)
                 return respond
             else:
                 if timeout:
@@ -408,6 +413,7 @@ class IBMQuantumExperience(object):
                         if result:
                             respond["status"] = 'DONE'
                             respond["result"] = result
+                            respond.pop('infoQueue', None)
                             return respond
                         else:
                             time.sleep(2)
