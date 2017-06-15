@@ -147,7 +147,7 @@ class IBMQuantumExperience(object):
                 return 'chip_simulator'
         elif endpoint == 'calibration':
             if device in self.__names_device_ibmqxv2:
-                return 'Real5Qv2'
+                return 'ibmqx2'
             elif device in self.__names_device_ibmqxv3:
                 return 'ibmqx3'
         return None
@@ -160,102 +160,6 @@ class IBMQuantumExperience(object):
             return False
         return True
 
-    def _beautify_calibration_parameters(self, cals, device):
-        '''
-        Beautify the calibrations returned by QX platform
-        '''
-        ret = {}
-        ret['name'] = device
-        calibration_date = None
-        units = {}
-        for key in cals:
-            if key == 'fridge_temperature':
-                for attr in cals[key]:
-                    if 'value' in attr:
-                        ret['fridgeTemperature'] = float(attr['value'])
-                        unit = attr['units']
-                        if unit == 'Kelvin':
-                            unit = "K"
-                        units['fridgeTemperature'] = unit
-                    if 'date' in attr:
-                        calibration_date = str(attr['date'])
-            elif key.startswith('Q'):
-                new_key = 'Q' + str(int(key.replace('Q', '')) - 1)
-                ret[new_key] = {}
-                for attr in cals[key]:
-                    if 'label' in attr:
-                        if attr['label'].startswith("f") and 'value' in attr:
-                            ret[new_key]['frequency'] = float(attr['value'])
-                            units['frequency'] = str(attr['units'])
-                        if attr['label'].startswith("t_1") and 'value' in attr:
-                            ret[new_key]['t1'] = float(attr['value'])
-                            unit = attr['units']
-                            if unit == 'microseconds':
-                                unit = "us"
-                            units['tx'] = unit
-                        if attr['label'].startswith("t_2") and 'value' in attr:
-                            ret[new_key]['t2'] = float(attr['value'])
-                            unit = attr['units']
-                            if unit == 'microseconds':
-                                unit = "us"
-                            units['tx'] = unit
-                    if not calibration_date and 'date' in attr:
-                        calibration_date = attr['date']
-
-        if calibration_date:
-            ret['coherenceStartTime'] = calibration_date
-
-        # TODO: Get from new calibrations files
-        ret['singleQubitGateTime'] = 80
-        ret['units'] = units
-
-        return {"backend": ret}
-
-    def _beautify_calibration(self, cals, device):
-        '''
-        Beautify the calibrations returned by QX platform
-        '''
-        ret = {}
-        ret['name'] = device
-        calibration_date = None
-        coupling_map = {}
-        for key in cals:
-            if key.startswith('CR'):
-                qubits = key.replace('CR', '').split('_')
-                qubit_from = int(qubits[0])-1
-                qubit_to = int(qubits[1])-1
-                key_qubit = str(qubit_from)
-                if key_qubit not in coupling_map:
-                    coupling_map[key_qubit] = []
-                coupling_map[key_qubit].append(qubit_to)
-                new_key = 'CX' + str(qubit_from) + "_" + str(qubit_to)
-                ret[new_key] = {}
-                for attr in cals[key]:
-                    if 'label' in attr:
-                        if attr['label'].startswith("e_g") and 'value' in attr:
-                            ret[new_key]['gateError'] = float(attr['value'])
-                    if not calibration_date and 'date' in attr:
-                        calibration_date = str(attr['date'])
-            elif key.startswith('Q'):
-                new_key = 'Q' + str(int(key.replace('Q', ''))-1)
-                ret[new_key] = {}
-                for attr in cals[key]:
-                    if 'label' in attr:
-                        if attr['label'].startswith("e_g") and 'value' in attr:
-                            ret[new_key]['gateError'] = float(attr['value'])
-                        if attr['label'].startswith("e_r") and 'value' in attr:
-                            ret[new_key]['readoutError'] = float(attr['value'])
-                    if not calibration_date and 'date' in attr:
-                        calibration_date = str(attr['date'])
-
-        if calibration_date:
-            ret['calibrationStartTime'] = calibration_date
-
-        if coupling_map:
-            ret['couplingMap'] = coupling_map
-
-        return {"backend": ret}
-
     def get_execution(self, id_execution):
         '''
         Get a execution, by its id
@@ -264,7 +168,7 @@ class IBMQuantumExperience(object):
             respond = {}
             respond["error"] = "Not credentials valid"
             return respond
-        execution = self.req.get('/Executions/' + id_execution, '')
+        execution = self.req.get('/Executions/' + id_execution)
         if execution["codeId"]:
             execution['code'] = self.get_code(execution["codeId"])
         return execution
@@ -277,7 +181,7 @@ class IBMQuantumExperience(object):
             respond = {}
             respond["error"] = "Not credentials valid"
             return respond
-        execution = self.req.get('/Executions/' + id_execution, '')
+        execution = self.req.get('/Executions/' + id_execution)
         result = {}
         if "result" in execution and "data" in execution["result"]:
             if execution["result"]["data"].get('p', None):
@@ -297,7 +201,7 @@ class IBMQuantumExperience(object):
             respond = {}
             respond["error"] = "Not credentials valid"
             return respond
-        code = self.req.get('/Codes/' + id_code, '')
+        code = self.req.get('/Codes/' + id_code)
         executions = self.req.get('/Codes/' + id_code + '/executions',
                                   'filter={"limit":3}')
         if isinstance(executions, list):
@@ -312,7 +216,7 @@ class IBMQuantumExperience(object):
             respond = {}
             respond["error"] = "Not credentials valid"
             return respond
-        return self.req.get('/Codes/' + id_code + '/export/png/url', '')
+        return self.req.get('/Codes/' + id_code + '/export/png/url')
 
     def get_last_codes(self):
         '''
@@ -352,7 +256,7 @@ class IBMQuantumExperience(object):
             respond = {}
             respond["error"] = str("Device " + device +
                                    " not exits in Quantum Experience." +
-                                   " Only allow ibmqx2 or simulator")
+                                   " Only allow ibmqx2, ibmqx3 or simulator")
             return respond
 
         if (device not in self.__names_device_simulator) and seed:
@@ -448,7 +352,7 @@ class IBMQuantumExperience(object):
             respond = {}
             respond["error"] = str("Device " + device +
                                    " not exits in Quantum Experience." +
-                                   "Only allow ibmqx2 or simulator")
+                                   "Only allow ibmqx2, ibmqx3 or simulator")
             return respond
 
         if (device not in self.__names_device_simulator) and seed:
@@ -506,20 +410,20 @@ class IBMQuantumExperience(object):
             respond = {}
             respond["error"] = "Not credentials valid"
             return respond
+
         device_type = self._check_device(device, 'calibration')
+
         if not device_type:
             respond = {}
             respond["error"] = str("Device " +
                                    device +
                                    " not exits in Quantum Experience" +
-                                   " Real Devices. Only allow ibmqx2")
+                                   " Real Devices. Only allow ibmqx2 or ibmqx3")
             return respond
-        ret = self.req.get('/DeviceStats/statsByDevice/' + device_type,
-                           '&raw=true')
+        ret = self.req.get('/Backends/' + device_type + '/calibration')
 
-        if device_type == 'Real5Qv2':
-            device = 'ibmqx2'
-        ret = self._beautify_calibration(ret, device)
+        ret["device"] = device_type
+
         return ret
 
     def device_parameters(self, device='ibmqx2'):
@@ -530,20 +434,21 @@ class IBMQuantumExperience(object):
             respond = {}
             respond["error"] = "Not credentials valid"
             return respond
+
         device_type = self._check_device(device, 'calibration')
+
         if not device_type:
             respond = {}
             respond["error"] = str("Device " +
                                    device +
                                    " not exits in Quantum Experience" +
-                                   " Real Devices. Only allow ibmqx2")
+                                   " Real Devices. Only allow ibmqx2 or ibmqx3")
             return respond
-        ret = self.req.get('/DeviceStats/statsByDevice/' + device_type,
-                           '&raw=true')
 
-        if device_type == 'Real5Qv2':
-            device = 'ibmqx2'
-        ret = self._beautify_calibration_parameters(ret, device)
+        ret = self.req.get('/Backends/' + device_type + '/parameters')
+
+        ret["device"] = device_type
+
         return ret
 
     def available_devices(self):
@@ -555,24 +460,11 @@ class IBMQuantumExperience(object):
             respond["error"] = "Not credentials valid"
             return respond
 
-        devices_real = self.req.get('/Devices/list')
-        respond = []
-        sim = {}
-        sim["name"] = "simulator"
-        sim["type"] = "Simulator"
-        sim["num_qubits"] = 24
-        respond.append(sim)
-        for device in devices_real:
-            real = {}
-            real["type"] = "Real"
-            real["name"] = device["serialNumber"]
-            if real["name"] == 'Real5Qv2':
-                real["name"] = 'ibmqx2'
-            topology = self.req.get('/Topologies/'+device["topologyId"])
-            if (("topology" in topology) and
-                    ("adjacencyMatrix" in topology["topology"])):
-                real["topology"] = topology["topology"]["adjacencyMatrix"]
-            real["num_qubits"] = topology["qubits"]
-            respond.append(real)
+        devices = self.req.get('/Backends')
+        ret = []
 
-        return respond
+        for device in devices:
+            if 'status' in device and (device['status'] == 'on'):
+                ret.append(device)
+
+        return ret
