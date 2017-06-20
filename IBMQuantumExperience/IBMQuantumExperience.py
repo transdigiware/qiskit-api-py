@@ -6,6 +6,10 @@ import datetime
 import time
 import requests
 
+class BadDevice(BaseException):
+    def __init__(self, device):
+        BaseException.__init__(self, 
+                      'Device "%s" does not exist.  Please use available_devices to see options' % device)
 
 class _Credentials(object):
 
@@ -13,8 +17,9 @@ class _Credentials(object):
         'url': 'https://quantumexperience.ng.bluemix.net/api'
     }
 
-    def __init__(self, token, config=None):
+    def __init__(self, token, config=None, verify=True):
         self.token_unique = token
+        self.verify = verify
         if config and config.get('url', None):
             self.config = config
         else:
@@ -23,6 +28,7 @@ class _Credentials(object):
         self.data_credentials = {}
         self.obtain_token()
 
+
     def obtain_token(self):
         '''
         Obtain the token to access to QX Platform
@@ -30,7 +36,8 @@ class _Credentials(object):
         self.data_credentials = requests.post(str(self.config.get('url') +
                                                   "/users/loginWithToken"),
                                               data={'apiToken':
-                                                    self.token_unique}).json()
+                                                    self.token_unique},
+                                              verify=self.verify).json()
 
         if not self.get_token():
             print('ERROR: Not token valid')
@@ -56,8 +63,9 @@ class _Credentials(object):
 
 class _Request(object):
 
-    def __init__(self, token, config=None):
-        self.credential = _Credentials(token, config)
+    def __init__(self, token, config=None, verify=True):
+        self.verify = verify
+        self.credential = _Credentials(token, config, verify)
 
     def check_token(self, respond):
         '''
@@ -79,12 +87,14 @@ class _Request(object):
             str(self.credential.config['url'] + path + '?access_token=' +
                 self.credential.get_token() + params),
             data=data,
-            headers=headers)
+            headers=headers,
+            verify=self.verify)
         if not self.check_token(respond):
             respond = requests.post(
                 str(self.credential.config['url'] + path + '?access_token=' +
                     self.credential.get_token() + params),
-                data=data, headers=headers)
+                data=data, headers=headers,
+                verify=self.verify)
         return respond.json()
 
     def get(self, path, params='', with_token=True):
@@ -100,10 +110,10 @@ class _Request(object):
         else:
             access_token = ''
         respond = requests.get(
-            self.credential.config['url'] + path + access_token + params)
+            self.credential.config['url'] + path + access_token + params, verify=self.verify)
         if not self.check_token(respond):
             respond = requests.get(
-                self.credential.config['url'] + path + access_token + params)
+                self.credential.config['url'] + path + access_token + params, verify=self.verify)
         return respond.json()
 
 
@@ -116,13 +126,16 @@ class IBMQuantumExperience(object):
     __names_device_simulator = ['simulator', 'sim_trivial_2',
                                 'ibmqx_qasm_simulator']
 
-    def __init__(self, token, config=None):
-        self.req = _Request(token, config)
+    def __init__(self, token, config=None, verify=True):
+        ''' If verify is set to false, ignore SSL certificate errors '''
+        self.req = _Request(token, config, verify)
 
     def _check_device(self, device, endpoint):
         '''
         Check if the name of a device is valid to run in QX Platform
         '''
+        # First check against hacks for old device names
+        original_device = device
         device = device.lower()
         if endpoint == 'experiment':
             if device in self.__names_device_ibmqxv2:
@@ -150,6 +163,17 @@ class IBMQuantumExperience(object):
                 return 'ibmqx2'
             elif device in self.__names_device_ibmqxv3:
                 return 'ibmqx3'
+
+        # Check for new-style devices
+        devices = self.available_devices()
+        for device in devices:
+            if device['name'] == original_device:
+                if device.get('simulator',False):
+                    return 'chip_simulator'
+                else:
+                    return original_device
+        return original_device
+
         return None
 
     def _check_credentials(self):
@@ -253,11 +277,7 @@ class IBMQuantumExperience(object):
         device_type = self._check_device(device, 'experiment')
 
         if not device_type:
-            respond = {}
-            respond["error"] = str("Device " + device +
-                                   " not exits in Quantum Experience." +
-                                   " Only allow ibmqx2, ibmqx3 or simulator")
-            return respond
+            raise BadDevice(device)
 
         if (device not in self.__names_device_simulator) and seed:
             respond = {}
@@ -349,11 +369,7 @@ class IBMQuantumExperience(object):
         device_type = self._check_device(device, 'job')
 
         if not device_type:
-            respond = {}
-            respond["error"] = str("Device " + device +
-                                   " not exits in Quantum Experience." +
-                                   "Only allow ibmqx2, ibmqx3 or simulator")
-            return respond
+            raise BadDevice(device)
 
         if (device not in self.__names_device_simulator) and seed:
             respond = {}
@@ -389,11 +405,8 @@ class IBMQuantumExperience(object):
         '''
         device_type = self._check_device(device, 'status')
         if not device_type:
-            respond = {}
-            respond["error"] = str("Device " + device +
-                                   " not exits in Quantum Experience." +
-                                   "Only allow ibmqx2 or simulator")
-            return respond
+            raise BadDevice(device)
+
         status = self.req.get('/Status/queue?device=' + device_type,
                               with_token=False)["state"]
         ret = {}
@@ -414,12 +427,8 @@ class IBMQuantumExperience(object):
         device_type = self._check_device(device, 'calibration')
 
         if not device_type:
-            respond = {}
-            respond["error"] = str("Device " +
-                                   device +
-                                   " not exits in Quantum Experience" +
-                                   " Real Devices. Only allow ibmqx2 or ibmqx3")
-            return respond
+            raise BadDevice(device)
+
         ret = self.req.get('/Backends/' + device_type + '/calibration')
 
         ret["device"] = device_type
@@ -438,12 +447,7 @@ class IBMQuantumExperience(object):
         device_type = self._check_device(device, 'calibration')
 
         if not device_type:
-            respond = {}
-            respond["error"] = str("Device " +
-                                   device +
-                                   " not exits in Quantum Experience" +
-                                   " Real Devices. Only allow ibmqx2 or ibmqx3")
-            return respond
+            raise BadDevice(device)
 
         ret = self.req.get('/Backends/' + device_type + '/parameters')
 
@@ -464,7 +468,7 @@ class IBMQuantumExperience(object):
         ret = []
 
         for device in devices:
-            if 'status' in device and (device['status'] == 'on'):
+            if device.get('status','on'):
                 ret.append(device)
 
         return ret
