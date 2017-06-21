@@ -394,6 +394,7 @@ class IBMQuantumExperience(object):
         '''
         if not self._check_credentials() or not id_job:
             respond = {}
+            respond["status"] = 'Error'
             respond["error"] = "Not credentials valid"
             return respond
         job = self.req.get('/Jobs/' + id_job)
