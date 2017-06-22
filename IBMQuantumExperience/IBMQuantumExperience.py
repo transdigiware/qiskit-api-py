@@ -2,10 +2,9 @@
     IBM Quantum Experience Python API Client
 '''
 import json
-import datetime
 import time
 import requests
-
+from datetime import datetime
 
 class _Credentials(object):
 
@@ -222,8 +221,7 @@ class IBMQuantumExperience(object):
         if device not in self.__names_device_simulator and seed:
             return {"error": "Not seed allowed in " + device}
 
-        if not name:
-            name = 'Experiment #{:%Y%m%d%H%M%S}'.format(datetime.date.today())
+        name = name or 'Experiment #{:%Y%m%d%H%M%S}'.format(datetime.now())
         qasm = qasm.replace('IBMQASM 2.0;', '').replace('OPENQASM 2.0;', '')
         data = json.dumps({'qasm': qasm, 'codeType': 'QASM2', 'name': name})
 
