@@ -23,6 +23,10 @@ class _Credentials(object):
     def __init__(self, token, config=None, verify=True):
         self.token_unique = token
         self.verify = verify
+        if not verify:
+            import requests.packages.urllib3 as urllib3
+            urllib3.disable_warnings()
+            print('-- Ignoring SSL errors.  This is not recommended --')
         if config and config.get('url', None):
             self.config = config
         else:
