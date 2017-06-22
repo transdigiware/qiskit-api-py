@@ -6,6 +6,8 @@ import time
 import requests
 from datetime import datetime
 
+log = logging.getLogger('IBMQuantumExperience')
+
 class BadDevice(BaseException):
     def __init__(self, device):
         BaseException.__init__(self, 
@@ -83,12 +85,24 @@ class _Request(object):
         url = str(self.credential.config['url'] + path + '?access_token=' +
                   self.credential.get_token() + params)
         respond = requests.post(url, data=data, headers=headers)
-            headers=headers,
-            verify=self.verify)
-        if not self.check_token(respond):
-            respond = requests.post(url, data=data, headers=headers)
+                headers=headers,
                 verify=self.verify)
-        return respond.json()
+            if not self.check_token(respond):
+            respond = requests.post(url, data=data, headers=headers)
+                    verify=self.verify)
+            try:
+                result = respond.json()
+                if not isinstance(result, (list, dict)):
+                    raise Exception("JSON not a list or dict: url: %s, status: %s, reason: %s, text: %s" % (respond.url, respond.status_code, respond.reason, respond.text))
+            except:
+                raise Exception("JSON conversion failed: url: %s, status: %s, reason: %s, text: %s" % (respond.url, respond.status_code, respond.reason, respond.text))
+            if ('error' not in result or
+                ('status' not in result['error'] or
+                 result['error']['status'] != 400)):
+                 break
+
+            log.warning("Got a 400 code response to %s", respond.url)
+        return result
 
     def get(self, path, params='', with_token=True):
         '''
@@ -101,9 +115,23 @@ class _Request(object):
                 access_token = '?access_token=' + str(access_token)
         url = self.credential.config['url'] + path + access_token + params
         respond = requests.get(url)
-        if not self.check_token(respond):
+        while True: # Repeat until no error
+            if not self.check_token(respond):
             respond = requests.get(url)
-        return respond.json()
+            try:
+                result = respond.json()
+                if not isinstance(result, (list, dict)):
+                    raise Exception("JSON not a list or dict: url: %s, status: %s, reason: %s, text: %s" % (respond.url, respond.status_code, respond.reason, respond.text))
+            except:
+                raise Exception("JSON conversion failed: url: %s, status: %s, reason: %s, text: %s" % (respond.url, respond.status_code, respond.reason, respond.text))
+
+            if ('error' not in result or
+                ('status' not in result['error'] or
+                 result['error']['status'] != 400)):
+                 break
+
+            log.warning("Got a 400 code response to %s", respond.url)
+        return result
 
 
 class IBMQuantumExperience(object):
@@ -338,9 +366,14 @@ class IBMQuantumExperience(object):
         '''
         Get the information about a job, by its id
         '''
-        if not self.check_credentials() or not id_job:
+        if not self._check_credentials():
             return {"error": "Not credentials valid"}
             respond["status"] = 'Error'
+            return respond
+        if not id_job:
+            respond = {}
+            respond["status"] = 'Error'
+            respond["error"] = "Job ID not specified"
         job = self.req.get('/Jobs/' + id_job)
         return job
 
