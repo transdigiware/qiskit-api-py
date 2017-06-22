@@ -99,6 +99,9 @@ class _Request(object):
                         self.credential.get_token() + params),
                     data=data, headers=headers,
                     verify=self.verify)
+            if respond.status_code == 400:
+                log.warning("Got a 400 code response to %s", respond.url)
+                continue
             try:
                 result = respond.json()
                 if not isinstance(result, (list, dict)):
@@ -110,7 +113,7 @@ class _Request(object):
                  result['error']['status'] != 400)):
                  break
 
-            log.warning("Got a 400 code response to %s", respond.url)
+            log.warning("Got a 400 code JSON response to %s", respond.url)
         return result
 
     def get(self, path, params='', with_token=True):
@@ -131,6 +134,10 @@ class _Request(object):
             if not self.check_token(respond):
                 respond = requests.get(
                     self.credential.config['url'] + path + access_token + params, verify=self.verify)
+            if respond.status_code == 400:
+                log.warning("Got a 400 code response to %s", respond.url)
+                continue
+
             try:
                 result = respond.json()
                 if not isinstance(result, (list, dict)):
