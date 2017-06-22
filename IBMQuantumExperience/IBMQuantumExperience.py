@@ -150,7 +150,7 @@ class _Request(object):
                  result['error']['status'] != 400)):
                  break
 
-            log.warning("Got a 400 code response to %s", respond.url)
+            log.warning("Got a 400 code JSON response to %s", respond.url)
         return result
 
 
