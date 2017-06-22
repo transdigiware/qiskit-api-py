@@ -5,6 +5,9 @@ import json
 import datetime
 import time
 import requests
+import logging
+
+log = logging.getLogger('IBMQuantumExperience')
 
 class BadDevice(BaseException):
     def __init__(self, device):
@@ -83,19 +86,32 @@ class _Request(object):
         if data is None:
             data = {}
         headers = {'Content-Type': 'application/json'}
-        respond = requests.post(
-            str(self.credential.config['url'] + path + '?access_token=' +
-                self.credential.get_token() + params),
-            data=data,
-            headers=headers,
-            verify=self.verify)
-        if not self.check_token(respond):
+        while True: # Repeat until no error
             respond = requests.post(
                 str(self.credential.config['url'] + path + '?access_token=' +
                     self.credential.get_token() + params),
-                data=data, headers=headers,
+                data=data,
+                headers=headers,
                 verify=self.verify)
-        return respond.json()
+            if not self.check_token(respond):
+                respond = requests.post(
+                    str(self.credential.config['url'] + path + '?access_token=' +
+                        self.credential.get_token() + params),
+                    data=data, headers=headers,
+                    verify=self.verify)
+            try:
+                result = respond.json()
+                if not isinstance(result, (list, dict)):
+                    raise Exception("JSON not a list or dict: url: %s, status: %s, reason: %s, text: %s" % (respond.url, respond.status_code, respond.reason, respond.text))
+            except:
+                raise Exception("JSON conversion failed: url: %s, status: %s, reason: %s, text: %s" % (respond.url, respond.status_code, respond.reason, respond.text))
+            if ('error' not in result or
+                ('status' not in result['error'] or
+                 result['error']['status'] != 400)):
+                 break
+
+            log.warning("Got a 400 code response to %s", respond.url)
+        return result
 
     def get(self, path, params='', with_token=True):
         '''
@@ -109,12 +125,26 @@ class _Request(object):
                 access_token = ''
         else:
             access_token = ''
-        respond = requests.get(
-            self.credential.config['url'] + path + access_token + params, verify=self.verify)
-        if not self.check_token(respond):
+        while True: # Repeat until no error
             respond = requests.get(
                 self.credential.config['url'] + path + access_token + params, verify=self.verify)
-        return respond.json()
+            if not self.check_token(respond):
+                respond = requests.get(
+                    self.credential.config['url'] + path + access_token + params, verify=self.verify)
+            try:
+                result = respond.json()
+                if not isinstance(result, (list, dict)):
+                    raise Exception("JSON not a list or dict: url: %s, status: %s, reason: %s, text: %s" % (respond.url, respond.status_code, respond.reason, respond.text))
+            except:
+                raise Exception("JSON conversion failed: url: %s, status: %s, reason: %s, text: %s" % (respond.url, respond.status_code, respond.reason, respond.text))
+
+            if ('error' not in result or
+                ('status' not in result['error'] or
+                 result['error']['status'] != 400)):
+                 break
+
+            log.warning("Got a 400 code response to %s", respond.url)
+        return result
 
 
 class IBMQuantumExperience(object):
@@ -392,10 +422,15 @@ class IBMQuantumExperience(object):
         '''
         Get the information about a job, by its id
         '''
-        if not self._check_credentials() or not id_job:
+        if not self._check_credentials():
             respond = {}
             respond["status"] = 'Error'
             respond["error"] = "Not credentials valid"
+            return respond
+        if not id_job:
+            respond = {}
+            respond["status"] = 'Error'
+            respond["error"] = "Job ID not specified"
             return respond
         job = self.req.get('/Jobs/' + id_job)
         return job
