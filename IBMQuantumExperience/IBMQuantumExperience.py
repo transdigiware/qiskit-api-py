@@ -2,16 +2,13 @@
     IBM Quantum Experience Python API Client
 '''
 import json
-import datetime
 import time
 import requests
-
+from datetime import datetime
 
 class _Credentials(object):
 
-    config_base = {
-        'url': 'https://quantumexperience.ng.bluemix.net/api'
-    }
+    config_base = {'url': 'https://quantumexperience.ng.bluemix.net/api'}
 
     def __init__(self, token, config=None):
         self.token_unique = token
@@ -72,38 +69,28 @@ class _Request(object):
         '''
         POST Method Wrapper of the REST API
         '''
-        if data is None:
-            data = {}
+        data = data or {}
         headers = {'Content-Type': 'application/json'}
-        respond = requests.post(
-            str(self.credential.config['url'] + path + '?access_token=' +
-                self.credential.get_token() + params),
-            data=data,
-            headers=headers)
+        url = str(self.credential.config['url'] + path + '?access_token=' +
+                  self.credential.get_token() + params)
+        respond = requests.post(url, data=data, headers=headers)
         if not self.check_token(respond):
-            respond = requests.post(
-                str(self.credential.config['url'] + path + '?access_token=' +
-                    self.credential.get_token() + params),
-                data=data, headers=headers)
+            respond = requests.post(url, data=data, headers=headers)
         return respond.json()
 
     def get(self, path, params='', with_token=True):
         '''
         GET Method Wrapper of the REST API
         '''
+        access_token = ''
         if with_token:
-            access_token = self.credential.get_token()
+            access_token = self.credential.get_token() or ''
             if access_token:
                 access_token = '?access_token=' + str(access_token)
-            else:
-                access_token = ''
-        else:
-            access_token = ''
-        respond = requests.get(
-            self.credential.config['url'] + path + access_token + params)
+        url = self.credential.config['url'] + path + access_token + params
+        respond = requests.get(url)
         if not self.check_token(respond):
-            respond = requests.get(
-                self.credential.config['url'] + path + access_token + params)
+            respond = requests.get(url)
         return respond.json()
 
 
@@ -156,18 +143,14 @@ class IBMQuantumExperience(object):
         '''
         Check if the user has permission in QX platform
         '''
-        if not self.req.credential.get_token():
-            return False
-        return True
+        return bool(self.req.credential.get_token())
 
     def get_execution(self, id_execution):
         '''
         Get a execution, by its id
         '''
         if not self._check_credentials():
-            respond = {}
-            respond["error"] = "Not credentials valid"
-            return respond
+            return {"error": "Not credentials valid"}
         execution = self.req.get('/Executions/' + id_execution)
         if execution["codeId"]:
             execution['code'] = self.get_code(execution["codeId"])
@@ -178,9 +161,7 @@ class IBMQuantumExperience(object):
         Get the result of a execution, byt the execution id
         '''
         if not self._check_credentials():
-            respond = {}
-            respond["error"] = "Not credentials valid"
-            return respond
+            return {"error": "Not credentials valid"}
         execution = self.req.get('/Executions/' + id_execution)
         result = {}
         if "result" in execution and "data" in execution["result"]:
@@ -198,9 +179,7 @@ class IBMQuantumExperience(object):
         Get a code, by its id
         '''
         if not self._check_credentials():
-            respond = {}
-            respond["error"] = "Not credentials valid"
-            return respond
+            return {"error": "Not credentials valid"}
         code = self.req.get('/Codes/' + id_code)
         executions = self.req.get('/Codes/' + id_code + '/executions',
                                   'filter={"limit":3}')
@@ -213,9 +192,7 @@ class IBMQuantumExperience(object):
         Get the image of a code, by its id
         '''
         if not self._check_credentials():
-            respond = {}
-            respond["error"] = "Not credentials valid"
-            return respond
+            return {"error": "Not credentials valid"}
         return self.req.get('/Codes/' + id_code + '/export/png/url')
 
     def get_last_codes(self):
@@ -223,13 +200,9 @@ class IBMQuantumExperience(object):
         Get the last codes of the user
         '''
         if not self._check_credentials():
-            respond = {}
-            respond["error"] = "Not credentials valid"
-            return respond
-        return self.req.get(str('/users/' +
-                                self.req.credential.get_user_id() +
-                                '/codes/lastest'),
-                            '&includeExecutions=true')['codes']
+            return {"error": "Not credentials valid"}
+        last = '/users/' + self.req.credential.get_user_id() + '/codes/lastest'
+        return self.req.get(last, '&includeExecutions=true')['codes']
 
     def run_experiment(self, qasm, device='simulator', shots=1, name=None,
                        seed=None, timeout=60):
@@ -237,51 +210,30 @@ class IBMQuantumExperience(object):
         Execute an experiment
         '''
         if not self._check_credentials():
-            respond = {}
-            respond["error"] = "Not credentials valid"
-            return respond
-        data = {}
-        qasm = qasm.replace('IBMQASM 2.0;', '')
-        qasm = qasm.replace('OPENQASM 2.0;', '')
-        data['qasm'] = qasm
-        data['codeType'] = 'QASM2'
-        if name is None:
-            name = str('Experiment #' +
-                       datetime.date.today().strftime("%Y%m%d%H%M%S"))
-        data['name'] = name
+            return {"error": "Not credentials valid"}
 
         device_type = self._check_device(device, 'experiment')
-
         if not device_type:
-            respond = {}
-            respond["error"] = str("Device " + device +
-                                   " not exits in Quantum Experience." +
-                                   " Only allow ibmqx2, ibmqx3 or simulator")
-            return respond
+            fmt = ("Device {} not exits in Quantum Experience. Only allow "
+                   "ibmqx2, ibmqx3 or simulator")
+            return {"error": fmt.format(device)}
 
-        if (device not in self.__names_device_simulator) and seed:
-            respond = {}
-            respond["error"] = "Not seed allowed in " + device
-            return respond
+        if device not in self.__names_device_simulator and seed:
+            return {"error": "Not seed allowed in " + device}
 
-        if (seed and len(str(seed)) < 11) and str(seed).isdigit():
-            execution = self.req.post('/codes/execute', str('&shots=' +
-                                                            str(shots) +
-                                                            '&seed=' +
-                                                            str(seed) +
-                                                            '&deviceRunType=' +
-                                                            device_type),
-                                      json.dumps(data))
+        name = name or 'Experiment #{:%Y%m%d%H%M%S}'.format(datetime.now())
+        qasm = qasm.replace('IBMQASM 2.0;', '').replace('OPENQASM 2.0;', '')
+        data = json.dumps({'qasm': qasm, 'codeType': 'QASM2', 'name': name})
+
+        if seed and len(str(seed)) < 11 and str(seed).isdigit():
+            params = '&shots={}&seed={}&deviceRunType={}'.format(shots, seed,
+                                                                 device_type)
+            execution = self.req.post('/codes/execute', params, data)
         elif seed:
-            respond = {}
-            respond["error"] = "Not seed allowed. Max 10 digits."
-            return respond
+            return {"error": "Not seed allowed. Max 10 digits."}
         else:
-            execution = self.req.post('/codes/execute', str('&shots=' +
-                                                            str(shots) +
-                                                            '&deviceRunType=' +
-                                                            device_type),
-                                      json.dumps(data))
+            params = '&shots={}&deviceRunType={}'.format(shots, device_type)
+            execution = self.req.post('/codes/execute', params, data)
         respond = {}
         try:
             status = execution["status"]["id"]
@@ -334,38 +286,28 @@ class IBMQuantumExperience(object):
         Execute a job
         '''
         if not self._check_credentials():
-            respond = {}
-            respond["error"] = "Not credentials valid"
-            return respond
-        data = {}
+            return {"error": "Not credentials valid"}
         for qasm in qasms:
             qasm['qasm'] = qasm['qasm'].replace('IBMQASM 2.0;', '')
             qasm['qasm'] = qasm['qasm'].replace('OPENQASM 2.0;', '')
-        data['qasms'] = qasms
-        data['shots'] = shots
-        data['maxCredits'] = max_credits
-        data['backend'] = {}
+        data = {'qasms': qasms,
+                'shots': shots,
+                'maxCredits': max_credits,
+                'backend': {}}
 
         device_type = self._check_device(device, 'job')
 
         if not device_type:
-            respond = {}
-            respond["error"] = str("Device " + device +
-                                   " not exits in Quantum Experience." +
-                                   "Only allow ibmqx2, ibmqx3 or simulator")
-            return respond
+            fmt = ("Device {} not exits in Quantum Experience. Only allow "
+                   "ibmqx2, ibmqx3 or simulator")
+            return {"error": fmt.format(device)}
+        if device not in self.__names_device_simulator and seed:
+            return {"error": "Not seed allowed in " + device}
 
-        if (device not in self.__names_device_simulator) and seed:
-            respond = {}
-            respond["error"] = "Not seed allowed in " + device
-            return respond
-
-        if (seed and len(str(seed)) < 11) and str(seed).isdigit():
+        if seed and len(str(seed)) < 11 and str(seed).isdigit():
             data['seed'] = seed
         elif seed:
-            respond = {}
-            respond["error"] = "Not seed allowed. Max 10 digits."
-            return respond
+            return {"error": "Not seed allowed. Max 10 digits."}
 
         data['backend']['name'] = device_type
 
@@ -377,9 +319,7 @@ class IBMQuantumExperience(object):
         Get the information about a job, by its id
         '''
         if not self._check_credentials() or not id_job:
-            respond = {}
-            respond["error"] = "Not credentials valid"
-            return respond
+            return {"error": "Not credentials valid"}
         job = self.req.get('/Jobs/' + id_job)
         return job
 
@@ -389,41 +329,30 @@ class IBMQuantumExperience(object):
         '''
         device_type = self._check_device(device, 'status')
         if not device_type:
-            respond = {}
-            respond["error"] = str("Device " + device +
-                                   " not exits in Quantum Experience." +
-                                   "Only allow ibmqx2 or simulator")
-            return respond
+            fmt = ("Device {} not exits in Quantum Experience. Only allow "
+                   "ibmqx2, ibmqx3 or simulator")
+            return {"error": fmt.format(device)}
+
         status = self.req.get('/Status/queue?device=' + device_type,
                               with_token=False)["state"]
-        ret = {}
-        ret['available'] = False
-        if status:
-            ret['available'] = True
-        return ret
+        return {'available': bool(status)}
 
     def device_calibration(self, device='ibmqx2'):
         '''
         Get the calibration of a real chip
         '''
         if not self._check_credentials():
-            respond = {}
-            respond["error"] = "Not credentials valid"
-            return respond
+            return {"error": "Not credentials valid"}
 
         device_type = self._check_device(device, 'calibration')
 
         if not device_type:
-            respond = {}
-            respond["error"] = str("Device " +
-                                   device +
-                                   " not exits in Quantum Experience" +
-                                   " Real Devices. Only allow ibmqx2 or ibmqx3")
-            return respond
+            fmt = ("Device {} not exits in Quantum Experience Real Devices. "
+                   "Only allow ibmqx2, ibmqx3 or simulator")
+            return {"error": fmt.format(device)}
+
         ret = self.req.get('/Backends/' + device_type + '/calibration')
-
         ret["device"] = device_type
-
         return ret
 
     def device_parameters(self, device='ibmqx2'):
@@ -431,24 +360,17 @@ class IBMQuantumExperience(object):
         Get the parameters of calibration of a real chip
         '''
         if not self._check_credentials():
-            respond = {}
-            respond["error"] = "Not credentials valid"
-            return respond
+            return {"error": "Not credentials valid"}
 
         device_type = self._check_device(device, 'calibration')
 
         if not device_type:
-            respond = {}
-            respond["error"] = str("Device " +
-                                   device +
-                                   " not exits in Quantum Experience" +
-                                   " Real Devices. Only allow ibmqx2 or ibmqx3")
-            return respond
+            fmt = ("Device {} not exits in Quantum Experience Real Devices. "
+                   "Only allow ibmqx2, ibmqx3 or simulator")
+            return {"error": fmt.format(device)}
 
         ret = self.req.get('/Backends/' + device_type + '/parameters')
-
         ret["device"] = device_type
-
         return ret
 
     def available_devices(self):
@@ -456,15 +378,7 @@ class IBMQuantumExperience(object):
         Get the devices availables to use in the QX Platform
         '''
         if not self._check_credentials():
-            respond = {}
-            respond["error"] = "Not credentials valid"
-            return respond
-
-        devices = self.req.get('/Backends')
-        ret = []
-
-        for device in devices:
-            if 'status' in device and (device['status'] == 'on'):
-                ret.append(device)
-
-        return ret
+            return {"error": "Not credentials valid"}
+        else:
+            return [device for device in self.req.get('/Backends')
+                    if device.get('status') == 'on']
