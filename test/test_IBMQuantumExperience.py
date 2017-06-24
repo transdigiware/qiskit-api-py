@@ -1,8 +1,32 @@
+from config import API_TOKEN
 import sys
-sys.path.append('../IBMQuantumExperience')
-from IBMQuantumExperience import IBMQuantumExperience
+import textwrap
 import unittest
-from config import *
+sys.path.append('../IBMQuantumExperience')  # todo: fix this
+from IBMQuantumExperience import IBMQuantumExperience  # noqa
+
+qasm = textwrap.dedent("""IBMQASM 2.0;
+
+                          include "qelib1.inc";
+                          qreg q[5];
+                          creg c[5];
+                          u2(-4*pi/3,2*pi) q[0];
+                          u2(-3*pi/2,2*pi) q[0];
+                          u3(-pi,0,-pi) q[0];
+                          u3(-pi,0,-pi/2) q[0];
+                          u2(pi,-pi/2) q[0];
+                          u3(-pi,0,-pi/2) q[0];
+                          measure q -> c;
+                          """)
+qasms = [{"qasm": qasm},
+         {"qasm": textwrap.dedent("""IBMQASM 2.0;
+
+                                     include "qelib1.inc";
+                                     qreg q[5];
+                                     creg c[5];
+                                     x q[0];
+                                     measure q -> c;
+                                     """)}]
 
 
 class TestQX(unittest.TestCase):
@@ -38,7 +62,6 @@ class TestQX(unittest.TestCase):
         Check run an experiment by user authenticated
         '''
         api = IBMQuantumExperience(API_TOKEN)
-        qasm = "IBMQASM 2.0;\n\ninclude \"qelib1.inc\";\nqreg q[5];\ncreg c[5];\nu2(-4*pi/3,2*pi) q[0];\nu2(-3*pi/2,2*pi) q[0];\nu3(-pi,0,-pi) q[0];\nu3(-pi,0,-pi/2) q[0];\nu2(pi,-pi/2) q[0];\nu3(-pi,0,-pi/2) q[0];\nmeasure q -> c;\n"
         device = 'simulator'
         shots = 1
         experiment = api.run_experiment(qasm, device, shots)
@@ -49,7 +72,6 @@ class TestQX(unittest.TestCase):
         Check run an experiment with seed by user authenticated
         '''
         api = IBMQuantumExperience(API_TOKEN)
-        qasm = "IBMQASM 2.0;\n\ninclude \"qelib1.inc\";\nqreg q[5];\ncreg c[5];\nu2(-4*pi/3,2*pi) q[0];\nu2(-3*pi/2,2*pi) q[0];\nu3(-pi,0,-pi) q[0];\nu3(-pi,0,-pi/2) q[0];\nu2(pi,-pi/2) q[0];\nu3(-pi,0,-pi/2) q[0];\nmeasure q -> c;\n"
         device = 'simulator'
         shots = 1
         seed = 815
@@ -58,10 +80,10 @@ class TestQX(unittest.TestCase):
 
     def test_api_run_experiment_fail_device(self):
         '''
-        Check run an experiment by user authenticated is not runned because the device is not exist
+        Check run an experiment by user authenticated is not run because the
+        device does not exist
         '''
         api = IBMQuantumExperience(API_TOKEN)
-        qasm = "IBMQASM 2.0;\n\ninclude \"qelib1.inc\";\nqreg q[5];\ncreg c[5];\nu2(-4*pi/3,2*pi) q[0];\nu2(-3*pi/2,2*pi) q[0];\nu3(-pi,0,-pi) q[0];\nu3(-pi,0,-pi/2) q[0];\nu2(pi,-pi/2) q[0];\nu3(-pi,0,-pi/2) q[0];\nmeasure q -> c;\n"
         device = '5qreal'
         shots = 1
         experiment = api.run_experiment(qasm, device, shots)
@@ -72,9 +94,6 @@ class TestQX(unittest.TestCase):
         Check run an job by user authenticated
         '''
         api = IBMQuantumExperience(API_TOKEN)
-        qasm1 = { "qasm": "IBMQASM 2.0;\n\ninclude \"qelib1.inc\";\nqreg q[5];\ncreg c[5];\nu2(-4*pi/3,2*pi) q[0];\nu2(-3*pi/2,2*pi) q[0];\nu3(-pi,0,-pi) q[0];\nu3(-pi,0,-pi/2) q[0];\nu2(pi,-pi/2) q[0];\nu3(-pi,0,-pi/2) q[0];\nmeasure q -> c;\n"}
-        qasm2 = { "qasm": "IBMQASM 2.0;\n\ninclude \"qelib1.inc\";\nqreg q[5];\ncreg c[5];\nx q[0];\nmeasure q -> c;\n"}
-        qasms = [qasm1, qasm2]
         device = 'simulator'
         shots = 1
         job = api.run_job(qasms, device, shots)
@@ -82,12 +101,10 @@ class TestQX(unittest.TestCase):
 
     def test_api_run_job_fail_device(self):
         '''
-        Check run an job by user authenticated is not runned because the device is not exist
+        Check run an job by user authenticated is not run because the device
+        does not exist
         '''
         api = IBMQuantumExperience(API_TOKEN)
-        qasm1 = { "qasm": "IBMQASM 2.0;\n\ninclude \"qelib1.inc\";\nqreg q[5];\ncreg c[5];\nu2(-4*pi/3,2*pi) q[0];\nu2(-3*pi/2,2*pi) q[0];\nu3(-pi,0,-pi) q[0];\nu3(-pi,0,-pi/2) q[0];\nu2(pi,-pi/2) q[0];\nu3(-pi,0,-pi/2) q[0];\nmeasure q -> c;\n"}
-        qasm2 = { "qasm": "IBMQASM 2.0;\n\ninclude \"qelib1.inc\";\nqreg q[5];\ncreg c[5];\nx q[0];\nmeasure q -> c;\n"}
-        qasms = [qasm1, qasm2]
         device = 'real5'
         shots = 1
         job = api.run_job(qasms, device, shots)
@@ -124,6 +141,7 @@ class TestQX(unittest.TestCase):
         api = IBMQuantumExperience(API_TOKEN)
         devices = api.available_devices()
         self.assertGreaterEqual(len(devices), 2)
+
 
 if __name__ == '__main__':
     suite = unittest.TestLoader().loadTestsFromTestCase(TestQX)
