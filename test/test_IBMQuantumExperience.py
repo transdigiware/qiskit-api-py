@@ -1,32 +1,32 @@
 from config import API_TOKEN
 import sys
-import textwrap
 import unittest
 sys.path.append('../IBMQuantumExperience')  # todo: fix this
 from IBMQuantumExperience import IBMQuantumExperience  # noqa
 
-qasm = textwrap.dedent("""IBMQASM 2.0;
+qasm = """IBMQASM 2.0;
 
-                          include "qelib1.inc";
-                          qreg q[5];
-                          creg c[5];
-                          u2(-4*pi/3,2*pi) q[0];
-                          u2(-3*pi/2,2*pi) q[0];
-                          u3(-pi,0,-pi) q[0];
-                          u3(-pi,0,-pi/2) q[0];
-                          u2(pi,-pi/2) q[0];
-                          u3(-pi,0,-pi/2) q[0];
-                          measure q -> c;
-                          """)
+include "qelib1.inc";
+qreg q[5];
+creg c[5];
+u2(-4*pi/3,2*pi) q[0];
+u2(-3*pi/2,2*pi) q[0];
+u3(-pi,0,-pi) q[0];
+u3(-pi,0,-pi/2) q[0];
+u2(pi,-pi/2) q[0];
+u3(-pi,0,-pi/2) q[0];
+measure q -> c;
+"""
+
 qasms = [{"qasm": qasm},
-         {"qasm": textwrap.dedent("""IBMQASM 2.0;
+         {"qasm": """IBMQASM 2.0;
 
-                                     include "qelib1.inc";
-                                     qreg q[5];
-                                     creg c[5];
-                                     x q[0];
-                                     measure q -> c;
-                                     """)}]
+include "qelib1.inc";
+qreg q[5];
+creg c[5];
+x q[0];
+measure q -> c;
+"""}]
 
 
 class TestQX(unittest.TestCase):
