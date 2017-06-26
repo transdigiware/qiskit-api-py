@@ -7,6 +7,7 @@ python:
     - "nightly"  # currently points to 3.7-dev
 install:
     - pip install flake8
+    - python setup.py -q install
 before_script:
     # stop the build if there are Python syntax errors
     - flake8 . --count --select=E901,E999 --statistics
