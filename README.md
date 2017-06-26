@@ -1,4 +1,4 @@
-# Python API Client IBM Quantum Experience
+# Python API Client IBM Quantum Experience [![Build Status](https://travis-ci.org/IBM/qiskit-api-py.svg?branch=develop)](https://travis-ci.org/IBM/qiskit-api-py)
 
 The official API Client to use [IBM Quantum Experience](https://quantumexperience.ng.bluemix.net/) in Python.
 
