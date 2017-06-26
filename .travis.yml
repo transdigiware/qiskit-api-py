@@ -14,7 +14,7 @@ before_script:
     # exit-zero treates all errors as warnings.  The GitHub editor is 127 chars wide
     - flake8 . --count --exit-zero --max-line-length=127 --statistics
 script:
-    - python test/test_IBMQuantumExperience.py  # I am yet not sure how to make this work.
+    - python test/test_IBMQuantumExperience.py
 notifications:
     on_success: change
     on_failure: always

@@ -6,6 +6,7 @@ import time
 import requests
 from datetime import datetime
 
+
 class _Credentials(object):
 
     config_base = {'url': 'https://quantumexperience.ng.bluemix.net/api'}
@@ -182,7 +183,7 @@ class IBMQuantumExperience(object):
             return {"error": "Not credentials valid"}
         code = self.req.get('/Codes/' + id_code)
         executions = self.req.get('/Codes/' + id_code + '/executions',
-                                  'filter={"limit":3}')
+                                  '&filter={"limit":3}')
         if isinstance(executions, list):
             code["executions"] = executions
         return code
@@ -322,6 +323,15 @@ class IBMQuantumExperience(object):
             return {"error": "Not credentials valid"}
         job = self.req.get('/Jobs/' + id_job)
         return job
+
+    def get_jobs(self, limit=50):
+        '''
+        Get the information about the user jobs
+        '''
+        if not self.check_credentials():
+            return {"error": "Not credentials valid"}
+        jobs = self.req.get('/Jobs', '&filter={"limit":' + str(limit) + '}')
+        return jobs
 
     def device_status(self, device='ibmqx2'):
         '''

@@ -121,6 +121,14 @@ class TestQX(unittest.TestCase):
         job = api.run_job(qasms, device, shots)
         self.assertIsNotNone(job['error'])
 
+    def test_api_get_jobs(self):
+        '''
+        Check get jobs by user authenticated
+        '''
+        api = IBMQuantumExperience(API_TOKEN)
+        jobs = api.get_jobs(2)
+        self.assertEqual(len(jobs), 2)
+
     def test_api_device_status(self):
         '''
         Check the status of a real chip

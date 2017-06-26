@@ -143,6 +143,15 @@ api.get_job(id_job)
     id_job = '9de64f58316db3eb6db6da53bf9135ff'
 ```
 
+To get all jobs information:
+
+- **limit**: Number of jobs returned. Eg:
+```limit=5 ```
+
+```python
+api.get_jobs(limit)
+```
+
 #### Get information about a Device
 
 To know the status (if it is running or in maintenance) of a device (real chip 5Q by default) you can run:
