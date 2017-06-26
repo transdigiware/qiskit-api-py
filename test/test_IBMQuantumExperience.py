@@ -10,7 +10,10 @@ from config import API_TOKEN
 sys.path.append('IBMQuantumExperience')
 sys.path.append('../IBMQuantumExperience')
 # pylint: disable=C0413
-from IBMQuantumExperience import IBMQuantumExperience  # noqa
+if sys.version_info.major > 2:  # Python 3
+    from IBMQuantumExperience.IBMQuantumExperience import IBMQuantumExperience  # noqa
+else:                           # Python 2 
+    from IBMQuantumExperience import IBMQuantumExperience  # noqa
 
 qasm = """IBMQASM 2.0;
 
