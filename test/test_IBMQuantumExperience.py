@@ -1,7 +1,15 @@
-from config import API_TOKEN
+# pylint: disable=C0103
+'''
+Unit Test
+'''
+
 import sys
 import unittest
-sys.path.append('../IBMQuantumExperience')  # todo: fix this
+# pylint: disable=W0403
+from config import API_TOKEN
+sys.path.append('IBMQuantumExperience')
+sys.path.append('../IBMQuantumExperience')
+# pylint: disable=C0413
 from IBMQuantumExperience import IBMQuantumExperience  # noqa
 
 qasm = """IBMQASM 2.0;
@@ -30,6 +38,9 @@ measure q -> c;
 
 
 class TestQX(unittest.TestCase):
+    '''
+    Class with the unit tests
+    '''
 
     def setUp(self):
         pass
@@ -47,7 +58,7 @@ class TestQX(unittest.TestCase):
         Authentication with Quantum Experience Platform
         '''
         api = IBMQuantumExperience(API_TOKEN)
-        credential = api._check_credentials()
+        credential = api.check_credentials()
         self.assertTrue(credential)
 
     def test_api_last_codes(self):

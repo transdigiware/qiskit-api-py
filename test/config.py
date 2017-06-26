@@ -1,2 +1,7 @@
+'''
+Configuration Variables to use in test mode
+'''
 
-API_TOKEN = 'YOUR_API_TOKEN'
+import os
+
+API_TOKEN = os.environ['QX_API_TOKEN'] or 'YOUR_API_TOKEN'

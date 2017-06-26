@@ -139,7 +139,7 @@ class IBMQuantumExperience(object):
                 return 'ibmqx3'
         return None
 
-    def _check_credentials(self):
+    def check_credentials(self):
         '''
         Check if the user has permission in QX platform
         '''
@@ -149,7 +149,7 @@ class IBMQuantumExperience(object):
         '''
         Get a execution, by its id
         '''
-        if not self._check_credentials():
+        if not self.check_credentials():
             return {"error": "Not credentials valid"}
         execution = self.req.get('/Executions/' + id_execution)
         if execution["codeId"]:
@@ -160,7 +160,7 @@ class IBMQuantumExperience(object):
         '''
         Get the result of a execution, byt the execution id
         '''
-        if not self._check_credentials():
+        if not self.check_credentials():
             return {"error": "Not credentials valid"}
         execution = self.req.get('/Executions/' + id_execution)
         result = {}
@@ -178,7 +178,7 @@ class IBMQuantumExperience(object):
         '''
         Get a code, by its id
         '''
-        if not self._check_credentials():
+        if not self.check_credentials():
             return {"error": "Not credentials valid"}
         code = self.req.get('/Codes/' + id_code)
         executions = self.req.get('/Codes/' + id_code + '/executions',
@@ -191,7 +191,7 @@ class IBMQuantumExperience(object):
         '''
         Get the image of a code, by its id
         '''
-        if not self._check_credentials():
+        if not self.check_credentials():
             return {"error": "Not credentials valid"}
         return self.req.get('/Codes/' + id_code + '/export/png/url')
 
@@ -199,7 +199,7 @@ class IBMQuantumExperience(object):
         '''
         Get the last codes of the user
         '''
-        if not self._check_credentials():
+        if not self.check_credentials():
             return {"error": "Not credentials valid"}
         last = '/users/' + self.req.credential.get_user_id() + '/codes/lastest'
         return self.req.get(last, '&includeExecutions=true')['codes']
@@ -209,7 +209,7 @@ class IBMQuantumExperience(object):
         '''
         Execute an experiment
         '''
-        if not self._check_credentials():
+        if not self.check_credentials():
             return {"error": "Not credentials valid"}
 
         device_type = self._check_device(device, 'experiment')
@@ -285,7 +285,7 @@ class IBMQuantumExperience(object):
         '''
         Execute a job
         '''
-        if not self._check_credentials():
+        if not self.check_credentials():
             return {"error": "Not credentials valid"}
         for qasm in qasms:
             qasm['qasm'] = qasm['qasm'].replace('IBMQASM 2.0;', '')
@@ -318,7 +318,7 @@ class IBMQuantumExperience(object):
         '''
         Get the information about a job, by its id
         '''
-        if not self._check_credentials() or not id_job:
+        if not self.check_credentials() or not id_job:
             return {"error": "Not credentials valid"}
         job = self.req.get('/Jobs/' + id_job)
         return job
@@ -341,7 +341,7 @@ class IBMQuantumExperience(object):
         '''
         Get the calibration of a real chip
         '''
-        if not self._check_credentials():
+        if not self.check_credentials():
             return {"error": "Not credentials valid"}
 
         device_type = self._check_device(device, 'calibration')
@@ -359,7 +359,7 @@ class IBMQuantumExperience(object):
         '''
         Get the parameters of calibration of a real chip
         '''
-        if not self._check_credentials():
+        if not self.check_credentials():
             return {"error": "Not credentials valid"}
 
         device_type = self._check_device(device, 'calibration')
@@ -377,7 +377,7 @@ class IBMQuantumExperience(object):
         '''
         Get the devices availables to use in the QX Platform
         '''
-        if not self._check_credentials():
+        if not self.check_credentials():
             return {"error": "Not credentials valid"}
         else:
             return [device for device in self.req.get('/Backends')
