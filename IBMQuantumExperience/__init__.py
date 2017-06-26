@@ -1,1 +1,1 @@
-from IBMQuantumExperience import IBMQuantumExperience
+from IBMQuantumExperience import IBMQuantumExperience  # noqa
