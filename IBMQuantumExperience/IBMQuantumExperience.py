@@ -121,7 +121,7 @@ class IBMQuantumExperience(object):
                 return 'sim_trivial_2'
         elif endpoint == 'job':
             if device in self.__names_device_ibmqxv2:
-                return 'real'
+                return 'ibmqx2'
             elif device in self.__names_device_ibmqxv3:
                 return 'ibmqx3'
             elif device in self.__names_device_simulator:
