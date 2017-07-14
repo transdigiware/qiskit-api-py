@@ -6,13 +6,51 @@ import time
 import requests
 from datetime import datetime
 import logging
+import requests
+import requests.packages.urllib3 as urllib3
+from requests.adapters import HTTPAdapter
+from time import sleep
 
+logging.basicConfig(level=logging.INFO)
 log = logging.getLogger('IBMQuantumExperience')
 
-class BadDevice(BaseException):
+class QiskitApiError(Exception):
+    def __init__(self, usrMsg=None, devMsg=None):
+        """
+        Parameters
+        ----------
+        usrMsg : str or None, optional
+           Short user facing message describing error.
+        devMsg : str or None, optional
+           More detailed message to assist developer with resolving issue.
+        """
+        self.usrMsg = usrMsg
+        self.devMsg = devMsg
+
+    def __repr__(self):
+        return repr(self.usrMsg)
+
+    def __str__(self):
+        return str(self.usrMsg)
+        
+
+class BadDeviceError(QiskitApiError):
+    """
+    Unavailable device error.
+    """
+    
     def __init__(self, device):
-        BaseException.__init__(self, 
-                      'Device "%s" does not exist.  Please use available_devices to see options' % device)
+        """
+        Parameters
+        ----------
+        device : str
+           Name of device.
+        """
+        usrMsg = ('Could not find device "{0}" available.').format(device)
+        
+        devMsg = ('Device "{0}" does not exist. Please use available_devices'
+                  'to see options').format(device)
+        QiskitApiError.__init__(self, usrMsg=usrMsg, devMsg=devMsg)
 
 class _Credentials(object):
 
@@ -32,7 +70,6 @@ class _Credentials(object):
 
         self.data_credentials = {}
         self.obtain_token()
-
 
     def obtain_token(self):
         '''
@@ -81,69 +118,122 @@ class _Request(object):
             return False
         return True
 
-    def post(self, path, params='', data=None):
+    def post(self, path, params='', data=None, retries=5,
+             timeout_interval=1.0):
         '''
         POST Method Wrapper of the REST API
         '''
+        if not isinstance(retries, int):
+            raise TypeError('post retries must be positive integer')
+        self.timeout_interval = timeout_interval
         data = data or {}
         headers = {'Content-Type': 'application/json'}
         url = str(self.credential.config['url'] + path + '?access_token=' +
                   self.credential.get_token() + params)
-        while True:  # repeat until no error
+        while retries > 0:
             respond = requests.post(url, data=data, headers=headers,
                                     verify=self.verify)
             if not self.check_token(respond):
                 respond = requests.post(url, data=data, headers=headers,
                                         verify=self.verify)
-            if respond.status_code == 400:
-                log.warning("Got a 400 code response to %s", respond.url)
-                continue
-            try:
-                result = respond.json()
-                if not isinstance(result, (list, dict)):
-                    raise Exception("JSON not a list or dict: url: %s, status: %s, reason: %s, text: %s" % (respond.url, respond.status_code, respond.reason, respond.text))
-            except:
-                raise Exception("JSON conversion failed: url: %s, status: %s, reason: %s, text: %s" % (respond.url, respond.status_code, respond.reason, respond.text))
-            if ('error' not in result or
-                ('status' not in result['error'] or
-                 result['error']['status'] != 400)):
-                break
-            
-            log.warning("Got a 400 code JSON response to %s", respond.url)
-        return result
+            if self._response_good(respond):
+                return self.result
+            else:
+                retries -= 1
+                sleep(timeout_interval)
+        # timed out
+        raise QiskitApiError(usrMsg='Failed to get proper response from backend.')
 
-    def get(self, path, params='', with_token=True):
+    def get(self, path, params='', with_token=True, retries=5,
+            timeout_interval=1.0):
         '''
         GET Method Wrapper of the REST API
-        '''
+        ''' 
+        if not isinstance(retries, int):
+            raise TypeError('get retries must be positive integer')
+        self.retries = retries
+        self.timeout_interval = timeout_interval
         access_token = ''
         if with_token:
             access_token = self.credential.get_token() or ''
             if access_token:
                 access_token = '?access_token=' + str(access_token)
         url = self.credential.config['url'] + path + access_token + params
-        while True: # Repeat until no error
+        while retries > 0: # Repeat until no error
             respond = requests.get(url, verify=self.verify)
             if not self.check_token(respond):
                 respond = requests.get(url, verify=self.verify)
-            if respond.status_code == 400:
-                log.warning("Got a 400 code response to %s", respond.url)
-                continue
+            if self._response_good(respond):
+                return self.result
+            else:
+                retries -= 1
+                sleep(timeout_interval)
+        # timed out
+        raise QiskitApiError(usrMsg='Failed to get proper response from backend.')
 
+    def _response_good(self, respond):
+        """
+        check response
+
+        Parameters
+        ----------
+        respond : str
+           HTTP response.
+
+        Returns
+        -------
+        bool
+           True if the response is good, else False.
+
+        Raises
+        ------
+        Raises QiskitApiError if response isn't formatted properly.
+        """
+        if respond.status_code == 400:
+            log.warning("Got a 400 code response to %s", respond.url)
+            return False
+        try:
+            result = respond.json()
+        except Exception as err:
+            usrMsg = ('JSON conversion failed: url: {0}, status: {1},'
+                      'reason: {2}, text: {3}')
             try:
-                result = respond.json()
-                if not isinstance(result, (list, dict)):
-                    raise Exception("JSON not a list or dict: url: %s, status: %s, reason: %s, text: %s" % (respond.url, respond.status_code, respond.reason, respond.text))
+                exc_type, exc_value, exc_traceback = sys.exc_info()
             except:
-                raise Exception("JSON conversion failed: url: %s, status: %s, reason: %s, text: %s" % (respond.url, respond.status_code, respond.reason, respond.text))
-
-            if ('error' not in result or
-                ('status' not in result['error'] or
-                 result['error']['status'] != 400)):
-                 break
-
+                raise
+            else:
+                errList = traceback.format_exception(exc_type, exc_value,
+                                                         exc_traceback)
+                errList = errList[-2:]
+                moduleInfo =  errList[0].split(',')
+                moduleName = moduleInfo[0].split('/')[-1].rstrip('"').split('.')[0]
+                moduleLine = moduleInfo[1].lstrip()
+                devMsg = '{0} {1} {2}'.format(moduleName, moduleLine,
+                                              errList[1])
+            finally:
+                # may not be necessary in python3 but should be safe and maybe
+                # avoid need to garbage collect cycle?
+                del exc_type, exc_value, exc_traceback
+                
+            raise QiskitApiError(
+                usrMsg = msg.format(respond.url, respond.status_code,
+                                    respond.reason, respond.text),
+                devMsg = devMsg)
+        else:
+            if not isinstance(result, (list, dict)):
+                msg = ('JSON not a list or dict: url: {0},'
+                       'status: {1}, reason: {2}, text: {3}')
+                raise QiskitApiError(
+                    usrMsg = msg.format(respond.url,
+                                        respond.status_code,
+                                        respond.reason, respond.text))
+        if ('error' not in result or
+            ('status' not in result['error'] or
+             result['error']['status'] != 400)):
+            return True
+        else:
             log.warning("Got a 400 code JSON response to %s", respond.url)
-        return result
+            return False
 
 
 class IBMQuantumExperience(object):
