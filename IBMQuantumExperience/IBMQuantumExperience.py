@@ -3,42 +3,41 @@
 '''
 import json
 import time
-import requests
-from datetime import datetime
 import logging
-import requests
-import requests.packages.urllib3 as urllib3
-from requests.adapters import HTTPAdapter
+from datetime import datetime
 from time import sleep
+import sys
+import traceback
+import requests
 
-logging.basicConfig(level=logging.INFO)
-log = logging.getLogger('IBMQuantumExperience')
 
 class QiskitApiError(Exception):
-    def __init__(self, usrMsg=None, devMsg=None):
+    """
+    QISKit API error handling base class.
+    """
+    def __init__(self, usr_msg=None, dev_msg=None):
         """
         Parameters
         ----------
-        usrMsg : str or None, optional
+        usr_msg : str or None, optional
            Short user facing message describing error.
-        devMsg : str or None, optional
+        dev_msg : str or None, optional
            More detailed message to assist developer with resolving issue.
         """
-        self.usrMsg = usrMsg
-        self.devMsg = devMsg
+        Exception.__init__(self, usr_msg)
+        self.usr_msg = usr_msg
+        self.dev_msg = dev_msg
 
     def __repr__(self):
-        return repr(self.usrMsg)
+        return repr(self.dev_msg)
 
     def __str__(self):
-        return str(self.usrMsg)
-        
+        return str(self.usr_msg)
 
 class BadDeviceError(QiskitApiError):
     """
     Unavailable device error.
     """
-    
     def __init__(self, device):
         """
         Parameters
@@ -46,11 +45,10 @@ class BadDeviceError(QiskitApiError):
         device : str
            Name of device.
         """
-        usrMsg = ('Could not find device "{0}" available.').format(device)
-        
-        devMsg = ('Device "{0}" does not exist. Please use available_devices'
-                  'to see options').format(device)
-        QiskitApiError.__init__(self, usrMsg=usrMsg, devMsg=devMsg)
+        usr_msg = ('Could not find device "{0}" available.').format(device)
+        dev_msg = ('Device "{0}" does not exist. Please use available_devices'
+                   'to see options').format(device)
+        QiskitApiError.__init__(self, usr_msg=usr_msg, dev_msg=dev_msg)
 
 class _Credentials(object):
 
@@ -105,9 +103,16 @@ class _Credentials(object):
 
 class _Request(object):
 
-    def __init__(self, token, config=None, verify=True):
+    def __init__(self, token, config=None, verify=True, retries=5,
+                 timeout_interval=1.0):
         self.verify = verify
         self.credential = _Credentials(token, config, verify)
+        self.log = logging.getLogger(__name__)
+        if not isinstance(retries, int):
+            raise TypeError('post retries must be positive integer')
+        self.retries = retries
+        self.timeout_interval = timeout_interval
+        self.result = None
 
     def check_token(self, respond):
         '''
@@ -118,18 +123,15 @@ class _Request(object):
             return False
         return True
 
-    def post(self, path, params='', data=None, retries=5,
-             timeout_interval=1.0):
+    def post(self, path, params='', data=None):
         '''
         POST Method Wrapper of the REST API
         '''
-        if not isinstance(retries, int):
-            raise TypeError('post retries must be positive integer')
-        self.timeout_interval = timeout_interval
         data = data or {}
         headers = {'Content-Type': 'application/json'}
         url = str(self.credential.config['url'] + path + '?access_token=' +
                   self.credential.get_token() + params)
+        retries = self.retries
         while retries > 0:
             respond = requests.post(url, data=data, headers=headers,
                                     verify=self.verify)
@@ -140,25 +142,21 @@ class _Request(object):
                 return self.result
             else:
                 retries -= 1
-                sleep(timeout_interval)
+                sleep(self.timeout_interval)
         # timed out
-        raise QiskitApiError(usrMsg='Failed to get proper response from backend.')
+        raise QiskitApiError(usr_msg='Failed to get proper response from backend.')
 
-    def get(self, path, params='', with_token=True, retries=5,
-            timeout_interval=1.0):
+    def get(self, path, params='', with_token=True):
         '''
         GET Method Wrapper of the REST API
-        ''' 
-        if not isinstance(retries, int):
-            raise TypeError('get retries must be positive integer')
-        self.retries = retries
-        self.timeout_interval = timeout_interval
+        '''
         access_token = ''
         if with_token:
             access_token = self.credential.get_token() or ''
             if access_token:
                 access_token = '?access_token=' + str(access_token)
         url = self.credential.config['url'] + path + access_token + params
+        retries = self.retries
         while retries > 0: # Repeat until no error
             respond = requests.get(url, verify=self.verify)
             if not self.check_token(respond):
@@ -167,9 +165,9 @@ class _Request(object):
                 return self.result
             else:
                 retries -= 1
-                sleep(timeout_interval)
+                sleep(self.timeout_interval)
         # timed out
-        raise QiskitApiError(usrMsg='Failed to get proper response from backend.')
+        raise QiskitApiError(usr_msg='Failed to get proper response from backend.')
 
     def _response_good(self, respond):
         """
@@ -190,49 +188,50 @@ class _Request(object):
         Raises QiskitApiError if response isn't formatted properly.
         """
         if respond.status_code == 400:
-            log.warning("Got a 400 code response to %s", respond.url)
+            self.log.warning("Got a 400 code response to %s", respond.url)
             return False
         try:
-            result = respond.json()
-        except Exception as err:
-            usrMsg = ('JSON conversion failed: url: {0}, status: {1},'
-                      'reason: {2}, text: {3}')
+            self.result = respond.json()
+        except Exception:
+            usr_msg = ('JSON conversion failed: url: {0}, status: {1},'
+                       'reason: {2}, text: {3}')
+            exc_type, exc_value, exc_traceback = None, None, None
             try:
                 exc_type, exc_value, exc_traceback = sys.exc_info()
             except:
                 raise
             else:
-                errList = traceback.format_exception(exc_type, exc_value,
-                                                         exc_traceback)
-                errList = errList[-2:]
-                moduleInfo =  errList[0].split(',')
-                moduleName = moduleInfo[0].split('/')[-1].rstrip('"').split('.')[0]
-                moduleLine = moduleInfo[1].lstrip()
-                devMsg = '{0} {1} {2}'.format(moduleName, moduleLine,
-                                              errList[1])
+                err_list = traceback.format_exception(exc_type, exc_value,
+                                                      exc_traceback)
+                err_list = err_list[-2:]
+                module_info = err_list[0].split(',')
+                module_name = module_info[0].split('/')[-1].rstrip('"').split('.')[0]
+                module_line = module_info[1].lstrip()
+                dev_msg = '{0} {1} {2}'.format(module_name, module_line,
+                                               err_list[1])
             finally:
                 # may not be necessary in python3 but should be safe and maybe
                 # avoid need to garbage collect cycle?
                 del exc_type, exc_value, exc_traceback
-                
+
             raise QiskitApiError(
-                usrMsg = msg.format(respond.url, respond.status_code,
-                                    respond.reason, respond.text),
-                devMsg = devMsg)
+                usr_msg=usr_msg.format(respond.url, respond.status_code,
+                                       respond.reason, respond.text),
+                dev_msg=dev_msg)
         else:
-            if not isinstance(result, (list, dict)):
+            if not isinstance(self.result, (list, dict)):
                 msg = ('JSON not a list or dict: url: {0},'
                        'status: {1}, reason: {2}, text: {3}')
                 raise QiskitApiError(
-                    usrMsg = msg.format(respond.url,
-                                        respond.status_code,
-                                        respond.reason, respond.text))
-        if ('error' not in result or
-            ('status' not in result['error'] or
-             result['error']['status'] != 400)):
+                    usr_msg=msg.format(respond.url,
+                                       respond.status_code,
+                                       respond.reason, respond.text))
+        if ('error' not in self.result or
+                ('status' not in self.result['error'] or
+                 self.result['error']['status'] != 400)):
             return True
         else:
-            log.warning("Got a 400 code JSON response to %s", respond.url)
+            self.log.warning("Got a 400 code JSON response to %s", respond.url)
             return False
 
 
@@ -287,12 +286,11 @@ class IBMQuantumExperience(object):
         devices = self.available_devices()
         for device in devices:
             if device['name'] == original_device:
-                if device.get('simulator',False):
+                if device.get('simulator', False):
                     return 'chip_simulator'
                 else:
                     return original_device
-        return original_device
-
+        # device unrecognized
         return None
 
     def check_credentials(self):
@@ -370,7 +368,7 @@ class IBMQuantumExperience(object):
 
         device_type = self._check_device(device, 'experiment')
         if not device_type:
-            raise BadDevice(device)
+            raise BadDeviceError(device)
 
         if device not in self.__names_device_simulator and seed:
             return {"error": "Not seed allowed in " + device}
@@ -452,7 +450,7 @@ class IBMQuantumExperience(object):
         device_type = self._check_device(device, 'job')
 
         if not device_type:
-            raise BadDevice(device)
+            raise BadDeviceError(device)
 
         if seed and len(str(seed)) < 11 and str(seed).isdigit():
             data['seed'] = seed
@@ -469,13 +467,15 @@ class IBMQuantumExperience(object):
         Get the information about a job, by its id
         '''
         if not self.check_credentials():
-            return {"error": "Not credentials valid"}
+            respond = {}
             respond["status"] = 'Error'
+            respond["error"] = "Not credentials valid"
             return respond
         if not id_job:
             respond = {}
             respond["status"] = 'Error'
             respond["error"] = "Job ID not specified"
+            return respond
         job = self.req.get('/Jobs/' + id_job)
         return job
 
@@ -494,7 +494,7 @@ class IBMQuantumExperience(object):
         '''
         device_type = self._check_device(device, 'status')
         if not device_type:
-            raise BadDevice(device)
+            raise BadDeviceError(device)
 
         status = self.req.get('/Status/queue?device=' + device_type,
                               with_token=False)["state"]
@@ -510,7 +510,7 @@ class IBMQuantumExperience(object):
         device_type = self._check_device(device, 'calibration')
 
         if not device_type:
-            raise BadDevice(device)
+            raise BadDeviceError(device)
 
 
         ret = self.req.get('/Backends/' + device_type + '/calibration')
@@ -527,7 +527,7 @@ class IBMQuantumExperience(object):
         device_type = self._check_device(device, 'calibration')
 
         if not device_type:
-            raise BadDevice(device)
+            raise BadDeviceError(device)
 
         ret = self.req.get('/Backends/' + device_type + '/parameters')
         ret["device"] = device_type

@@ -12,8 +12,10 @@ sys.path.append('../IBMQuantumExperience')
 # pylint: disable=C0413
 if sys.version_info.major > 2:  # Python 3
     from IBMQuantumExperience.IBMQuantumExperience import IBMQuantumExperience  # noqa
+    from IBMQuantumExperience.IBMQuantumExperience import BadDeviceError  # noqa
 else:                           # Python 2 
     from IBMQuantumExperience import IBMQuantumExperience  # noqa
+    from IBMQuantumExperience import BadDeviceError  # noqa    
 
 qasm = """IBMQASM 2.0;
 
@@ -100,8 +102,8 @@ class TestQX(unittest.TestCase):
         api = IBMQuantumExperience(API_TOKEN)
         device = '5qreal'
         shots = 1
-        experiment = api.run_experiment(qasm, device, shots)
-        self.assertIsNotNone(experiment['error'])
+        self.assertRaises(BadDeviceError,
+                          api.run_experiment, qasm, device, shots)
 
     def test_api_run_job(self):
         '''
@@ -121,8 +123,7 @@ class TestQX(unittest.TestCase):
         api = IBMQuantumExperience(API_TOKEN)
         device = 'real5'
         shots = 1
-        job = api.run_job(qasms, device, shots)
-        self.assertIsNotNone(job['error'])
+        self.assertRaises(BadDeviceError, api.run_job, qasms, device, shots)
 
     def test_api_get_jobs(self):
         '''
