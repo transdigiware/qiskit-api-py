@@ -242,7 +242,7 @@ class IBMQuantumExperience(object):
     __names_backend_ibmqxv2 = ['ibmqx5qv2', 'ibmqx2', 'qx5qv2', 'qx5q', 'real']
     __names_backend_ibmqxv3 = ['ibmqx3']
     __names_backend_simulator = ['simulator', 'sim_trivial_2',
-                                'ibmqx_qasm_simulator']
+                                 'ibmqx_qasm_simulator']
 
     def __init__(self, token, config=None, verify=True):
         ''' If verify is set to false, ignore SSL certificate errors '''
@@ -552,5 +552,4 @@ class IBMQuantumExperience(object):
         else:
             return [backend for backend in self.req.get('/Backends')
                     if backend.get('status') == 'on'
-                        and backend.get('simulator') == True]
-        
+                    and backend.get('simulator') is True]
