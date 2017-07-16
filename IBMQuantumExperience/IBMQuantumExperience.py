@@ -34,20 +34,20 @@ class QiskitApiError(Exception):
     def __str__(self):
         return str(self.usr_msg)
 
-class BadDeviceError(QiskitApiError):
+class BadBackendError(QiskitApiError):
     """
-    Unavailable device error.
+    Unavailable backend error.
     """
-    def __init__(self, device):
+    def __init__(self, backend):
         """
         Parameters
         ----------
-        device : str
-           Name of device.
+        backend : str
+           Name of backend.
         """
-        usr_msg = ('Could not find device "{0}" available.').format(device)
-        dev_msg = ('Device "{0}" does not exist. Please use available_devices'
-                   'to see options').format(device)
+        usr_msg = ('Could not find backend "{0}" available.').format(backend)
+        dev_msg = ('Backend "{0}" does not exist. Please use available_backends'
+                   'to see options').format(backend)
         QiskitApiError.__init__(self, usr_msg=usr_msg, dev_msg=dev_msg)
 
 class _Credentials(object):
@@ -239,58 +239,58 @@ class IBMQuantumExperience(object):
     '''
     The Connector Class to do request to QX Platform
     '''
-    __names_device_ibmqxv2 = ['ibmqx5qv2', 'ibmqx2', 'qx5qv2', 'qx5q', 'real']
-    __names_device_ibmqxv3 = ['ibmqx3']
-    __names_device_simulator = ['simulator', 'sim_trivial_2',
+    __names_backend_ibmqxv2 = ['ibmqx5qv2', 'ibmqx2', 'qx5qv2', 'qx5q', 'real']
+    __names_backend_ibmqxv3 = ['ibmqx3']
+    __names_backend_simulator = ['simulator', 'sim_trivial_2',
                                 'ibmqx_qasm_simulator']
 
     def __init__(self, token, config=None, verify=True):
         ''' If verify is set to false, ignore SSL certificate errors '''
         self.req = _Request(token, config, verify)
 
-    def _check_device(self, device, endpoint):
+    def _check_backend(self, backend, endpoint):
         '''
-        Check if the name of a device is valid to run in QX Platform
+        Check if the name of a backend is valid to run in QX Platform
         '''
-        # First check against hacks for old device names
-        original_device = device
-        device = device.lower()
+        # First check against hacks for old backend names
+        original_backend = backend
+        backend = backend.lower()
         if endpoint == 'experiment':
-            if device in self.__names_device_ibmqxv2:
+            if backend in self.__names_backend_ibmqxv2:
                 return 'real'
-            elif device in self.__names_device_ibmqxv3:
+            elif backend in self.__names_backend_ibmqxv3:
                 return 'ibmqx3'
-            elif device in self.__names_device_simulator:
+            elif backend in self.__names_backend_simulator:
                 return 'sim_trivial_2'
         elif endpoint == 'job':
-            if device in self.__names_device_ibmqxv2:
+            if backend in self.__names_backend_ibmqxv2:
                 return 'real'
-            elif device in self.__names_device_ibmqxv3:
+            elif backend in self.__names_backend_ibmqxv3:
                 return 'ibmqx3'
-            elif device in self.__names_device_simulator:
+            elif backend in self.__names_backend_simulator:
                 return 'simulator'
         elif endpoint == 'status':
-            if device in self.__names_device_ibmqxv2:
+            if backend in self.__names_backend_ibmqxv2:
                 return 'chip_real'
-            elif device in self.__names_device_ibmqxv3:
+            elif backend in self.__names_backend_ibmqxv3:
                 return 'ibmqx3'
-            elif device in self.__names_device_simulator:
+            elif backend in self.__names_backend_simulator:
                 return 'chip_simulator'
         elif endpoint == 'calibration':
-            if device in self.__names_device_ibmqxv2:
+            if backend in self.__names_backend_ibmqxv2:
                 return 'ibmqx2'
-            elif device in self.__names_device_ibmqxv3:
+            elif backend in self.__names_backend_ibmqxv3:
                 return 'ibmqx3'
 
-        # Check for new-style devices
-        devices = self.available_devices()
-        for device in devices:
-            if device['name'] == original_device:
-                if device.get('simulator', False):
+        # Check for new-style backends
+        backends = self.available_backends()
+        for backend in backends:
+            if backend['name'] == original_backend:
+                if backend.get('simulator', False):
                     return 'chip_simulator'
                 else:
-                    return original_device
-        # device unrecognized
+                    return original_backend
+        # backend unrecognized
         return None
 
     def check_credentials(self):
@@ -358,7 +358,7 @@ class IBMQuantumExperience(object):
         last = '/users/' + self.req.credential.get_user_id() + '/codes/lastest'
         return self.req.get(last, '&includeExecutions=true')['codes']
 
-    def run_experiment(self, qasm, device='simulator', shots=1, name=None,
+    def run_experiment(self, qasm, backend='simulator', shots=1, name=None,
                        seed=None, timeout=60):
         '''
         Execute an experiment
@@ -366,12 +366,12 @@ class IBMQuantumExperience(object):
         if not self.check_credentials():
             return {"error": "Not credentials valid"}
 
-        device_type = self._check_device(device, 'experiment')
-        if not device_type:
-            raise BadDeviceError(device)
+        backend_type = self._check_backend(backend, 'experiment')
+        if not backend_type:
+            raise BadBackendError(backend)
 
-        if device not in self.__names_device_simulator and seed:
-            return {"error": "Not seed allowed in " + device}
+        if backend not in self.__names_backend_simulator and seed:
+            return {"error": "Not seed allowed in " + backend}
 
         name = name or 'Experiment #{:%Y%m%d%H%M%S}'.format(datetime.now())
         qasm = qasm.replace('IBMQASM 2.0;', '').replace('OPENQASM 2.0;', '')
@@ -379,12 +379,12 @@ class IBMQuantumExperience(object):
 
         if seed and len(str(seed)) < 11 and str(seed).isdigit():
             params = '&shots={}&seed={}&deviceRunType={}'.format(shots, seed,
-                                                                 device_type)
+                                                                 backend_type)
             execution = self.req.post('/codes/execute', params, data)
         elif seed:
             return {"error": "Not seed allowed. Max 10 digits."}
         else:
-            params = '&shots={}&deviceRunType={}'.format(shots, device_type)
+            params = '&shots={}&deviceRunType={}'.format(shots, backend_type)
             execution = self.req.post('/codes/execute', params, data)
         respond = {}
         try:
@@ -432,7 +432,7 @@ class IBMQuantumExperience(object):
             respond["error"] = execution
             return respond
 
-    def run_job(self, qasms, device='simulator', shots=1,
+    def run_job(self, qasms, backend='simulator', shots=1,
                 max_credits=3, seed=None):
         '''
         Execute a job
@@ -447,17 +447,17 @@ class IBMQuantumExperience(object):
                 'maxCredits': max_credits,
                 'backend': {}}
 
-        device_type = self._check_device(device, 'job')
+        backend_type = self._check_backend(backend, 'job')
 
-        if not device_type:
-            raise BadDeviceError(device)
+        if not backend_type:
+            raise BadBackendError(backend)
 
         if seed and len(str(seed)) < 11 and str(seed).isdigit():
             data['seed'] = seed
         elif seed:
             return {"error": "Not seed allowed. Max 10 digits."}
 
-        data['backend']['name'] = device_type
+        data['backend']['name'] = backend_type
 
         job = self.req.post('/Jobs', data=json.dumps(data))
         return job
@@ -488,57 +488,69 @@ class IBMQuantumExperience(object):
         jobs = self.req.get('/Jobs', '&filter={"limit":' + str(limit) + '}')
         return jobs
 
-    def device_status(self, device='ibmqx2'):
+    def backend_status(self, backend='ibmqx2'):
         '''
         Get the status of a chip
         '''
-        device_type = self._check_device(device, 'status')
-        if not device_type:
-            raise BadDeviceError(device)
+        backend_type = self._check_backend(backend, 'status')
+        if not backend_type:
+            raise BadBackendError(backend)
 
-        status = self.req.get('/Status/queue?device=' + device_type,
+        status = self.req.get('/Status/queue?backend=' + backend_type,
                               with_token=False)["state"]
         return {'available': bool(status)}
 
-    def device_calibration(self, device='ibmqx2'):
+    def backend_calibration(self, backend='ibmqx2'):
         '''
         Get the calibration of a real chip
         '''
         if not self.check_credentials():
             return {"error": "Not credentials valid"}
 
-        device_type = self._check_device(device, 'calibration')
+        backend_type = self._check_backend(backend, 'calibration')
 
-        if not device_type:
-            raise BadDeviceError(device)
+        if not backend_type:
+            raise BadBackendError(backend)
 
 
-        ret = self.req.get('/Backends/' + device_type + '/calibration')
-        ret["device"] = device_type
+        ret = self.req.get('/Backends/' + backend_type + '/calibration')
+        ret["backend"] = backend_type
         return ret
 
-    def device_parameters(self, device='ibmqx2'):
+    def backend_parameters(self, backend='ibmqx2'):
         '''
         Get the parameters of calibration of a real chip
         '''
         if not self.check_credentials():
             return {"error": "Not credentials valid"}
 
-        device_type = self._check_device(device, 'calibration')
+        backend_type = self._check_backend(backend, 'calibration')
 
-        if not device_type:
-            raise BadDeviceError(device)
+        if not backend_type:
+            raise BadBackendError(backend)
 
-        ret = self.req.get('/Backends/' + device_type + '/parameters')
-        ret["device"] = device_type
+        ret = self.req.get('/Backends/' + backend_type + '/parameters')
+        ret["backend"] = backend_type
         return ret
 
-    def available_devices(self):
+    def available_backends(self):
         '''
-        Get the devices availables to use in the QX Platform
+        Get the backends available to use in the QX Platform
         '''
         if not self.check_credentials():
             return {"error": "Not credentials valid"}
         else:
-            return [device for device in self.req.get('/Backends')
-                    if device.get('status') == 'on']
+            return [backend for backend in self.req.get('/Backends')
+                    if backend.get('status') == 'on']
+
+    def available_backend_simulators(self):
+        '''
+        Get the backend simulators available to use in the QX Platform
+        '''
+        if not self.check_credentials():
+            return {"error": "Not credentials valid"}
+        else:
+            return [backend for backend in self.req.get('/Backends')
+                    if backend.get('status') == 'on'
+                        and backend.get('simulator') == True]
+        
