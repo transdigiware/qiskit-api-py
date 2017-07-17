@@ -333,7 +333,10 @@ class IBMQuantumExperience(object):
             if execution["result"]["data"].get('valsxyz', None):
                 result["bloch"] = execution["result"]["data"]["valsxyz"]
             if "additionalData" in execution["result"]["data"]:
-                result["extraInfo"] = execution["result"]["data"]["additionalData"]
+                ad_aux = execution["result"]["data"]["additionalData"]
+                result["extraInfo"] = ad_aux
+            if "calibration" in execution:
+                result["calibration"] = execution["calibration"]
 
         return result
 
@@ -432,6 +435,8 @@ class IBMQuantumExperience(object):
                         if result:
                             respond["status"] = 'DONE'
                             respond["result"] = result
+                            respond["calibration"] = result["calibration"]
+                            del result["calibration"]
                             respond.pop('infoQueue', None)
                             return respond
                         else:
