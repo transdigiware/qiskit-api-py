@@ -99,7 +99,7 @@ api.run_experiment(qasm, device, shots, name=None, timeout=60)
 
 - **qasm**: The QASM 2.0 code to run. Eg: 
 ```qasm = 'OPENQASM 2.0;\n\ninclude "qelib1.inc";\nqreg q[5];\ncreg c[5];\nh q[0];\ncx q[0],q[2];\nmeasure q[0] -> c[0];\nmeasure q[2] -> c[1];\n'```
-- **device**: Type of device to run the experiment. Only two option possibles: *simulator* or *ibmqx2*, that is the real chip of 5 qubits. Eg:
+- **backend**: Type of backend to run the experiment. Only two option possibles: *simulator* or *ibmqx2*, that is the real chip of 5 qubits. Eg:
 ```device = 'ibmqx2' ```
 - **shots**: Number of shots of the experiments. Maximum 8192 shots. Eg:
 ```shots = 1024 ```
@@ -113,7 +113,7 @@ api.run_experiment(qasm, device, shots, name=None, timeout=60)
 To execute jobs about [QASM 2.0](https://github.com/IBM/qiskit-openqasm) experiments:
 
 ```python
-api.run_job(qasms, device, shots, max_credits)
+api.run_job(qasms, backend, shots, max_credits)
 ```
 
 - **qasms**: A list of objects with the QASM 2.0 information. Eg: 
@@ -123,7 +123,7 @@ api.run_job(qasms, device, shots, max_credits)
    { 'qasm': 'OPENQASM 2.0;\n\ninclude "qelib1.inc";\nqreg q[5];\ncreg c[5];\nx q[0];\nmeasure q[0] -> c[0];\n'}
 ]
 ```
-- **device**: Type of device to run the experiment. Only two option possibles: *simulator* or *ibmqx2*, that is the real chip of 5 qubits. Eg:
+- **backend**: Type of backend to run the experiment. Only two option possibles: *simulator* or *ibmqx2*, that is the real chip of 5 qubits. Eg:
 ```device = 'ibmqx2' ```
 - **shots**: Number of shots of the experiments. Maximum 8192 shots. Eg:
 ```shots = 1024 ```
@@ -155,26 +155,26 @@ api.get_jobs(limit)
 To know the status (if it is running or in maintenance) of a device (real chip 5Q by default) you can run:
 
 ```python
-api.device_status(device)
+api.backend_status(backend)
 ```
 
-- **device**: The device to get its availability. By default is the 5 Qubits Real Chip. Eg:
-```device='ibmqx2' ```
+- **backend**: The backend to get its availability. By default is the 5 Qubits Real Chip. Eg:
+```backend='ibmqx2' ```
 
-#### Get Calibration of a Device
+#### Get Calibration of a Backend
 
-To know the last calibration of a device (real chip 5Q by default) you can run:
+To know the last calibration of a backend (real chip 5Q by default) you can run:
 
 ```python
-api.device_calibration(device)
+api.backend_calibration(backend)
 ```
 
-#### Get Parameters Calibration of a Device
+#### Get Parameters Calibration of a Backend
 
-To know the last parameters of calibration of a device (real chip 5Q by default) you can run:
+To know the last parameters of calibration of a backend (real chip 5Q by default) you can run:
 
 ```python
-api.device_parameters(device)
+api.backend_parameters(backend)
 ```
 
 - **device**: The device to get its last calibration. By default is the 5 Qubits Real Chip. Eg:
@@ -185,7 +185,7 @@ api.device_parameters(device)
 To know the devices where you can run (by name):
 
 ```python
-api.available_devices()
+api.available_backends()
 ```
 
 
