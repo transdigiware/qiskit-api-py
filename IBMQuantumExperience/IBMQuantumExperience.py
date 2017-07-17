@@ -5,25 +5,24 @@ import json
 import time
 import logging
 from datetime import datetime
-from time import sleep
 import sys
 import traceback
 import requests
 
 
-class QiskitApiError(Exception):
-    """
-    QISKit API error handling base class.
-    """
+class IBMQuantumExperienceApiError(Exception):
+    '''
+    IBMQuantumExperience API error handling base class.
+    '''
     def __init__(self, usr_msg=None, dev_msg=None):
-        """
+        '''
         Parameters
         ----------
         usr_msg : str or None, optional
            Short user facing message describing error.
         dev_msg : str or None, optional
            More detailed message to assist developer with resolving issue.
-        """
+        '''
         Exception.__init__(self, usr_msg)
         self.usr_msg = usr_msg
         self.dev_msg = dev_msg
@@ -34,24 +33,29 @@ class QiskitApiError(Exception):
     def __str__(self):
         return str(self.usr_msg)
 
-class BadBackendError(QiskitApiError):
-    """
+
+class BadBackendError(IBMQuantumExperienceApiError):
+    '''
     Unavailable backend error.
-    """
+    '''
     def __init__(self, backend):
-        """
+        '''
         Parameters
         ----------
         backend : str
            Name of backend.
-        """
+        '''
         usr_msg = ('Could not find backend "{0}" available.').format(backend)
-        dev_msg = ('Backend "{0}" does not exist. Please use available_backends'
-                   'to see options').format(backend)
-        QiskitApiError.__init__(self, usr_msg=usr_msg, dev_msg=dev_msg)
+        dev_msg = ('Backend "{0}" does not exist. Please use '
+                   'available_backends to see options').format(backend)
+        IBMQuantumExperienceApiError.__init__(self, usr_msg=usr_msg,
+                                              dev_msg=dev_msg)
+
 
 class _Credentials(object):
-
+    '''
+    The Credential class to manage the tokens
+    '''
     config_base = {'url': 'https://quantumexperience.ng.bluemix.net/api'}
 
     def __init__(self, token, config=None, verify=True):
@@ -102,7 +106,9 @@ class _Credentials(object):
 
 
 class _Request(object):
-
+    '''
+    The Request class to manage the methods
+    '''
     def __init__(self, token, config=None, verify=True, retries=5,
                  timeout_interval=1.0):
         self.verify = verify
@@ -142,9 +148,10 @@ class _Request(object):
                 return self.result
             else:
                 retries -= 1
-                sleep(self.timeout_interval)
+                time.sleep(self.timeout_interval)
         # timed out
-        raise QiskitApiError(usr_msg='Failed to get proper response from backend.')
+        raise IBMQuantumExperienceApiError(usr_msg='Failed to get proper ' +
+                                           'response from backend.')
 
     def get(self, path, params='', with_token=True):
         '''
@@ -165,12 +172,13 @@ class _Request(object):
                 return self.result
             else:
                 retries -= 1
-                sleep(self.timeout_interval)
+                time.sleep(self.timeout_interval)
         # timed out
-        raise QiskitApiError(usr_msg='Failed to get proper response from backend.')
+        raise IBMQuantumExperienceApiError(usr_msg='Failed to get proper ' +
+                                           'response from backend.')
 
     def _response_good(self, respond):
-        """
+        '''
         check response
 
         Parameters
@@ -185,8 +193,9 @@ class _Request(object):
 
         Raises
         ------
-        Raises QiskitApiError if response isn't formatted properly.
-        """
+        Raises IBMQuantumExperienceApiError if response isn't formatted
+        properly.
+        '''
         if respond.status_code == 400:
             self.log.warning("Got a 400 code response to %s", respond.url)
             return False
@@ -214,7 +223,7 @@ class _Request(object):
                 # avoid need to garbage collect cycle?
                 del exc_type, exc_value, exc_traceback
 
-            raise QiskitApiError(
+            raise IBMQuantumExperienceApiError(
                 usr_msg=usr_msg.format(respond.url, respond.status_code,
                                        respond.reason, respond.text),
                 dev_msg=dev_msg)
@@ -222,7 +231,7 @@ class _Request(object):
             if not isinstance(self.result, (list, dict)):
                 msg = ('JSON not a list or dict: url: {0},'
                        'status: {1}, reason: {2}, text: {3}')
-                raise QiskitApiError(
+                raise IBMQuantumExperienceApiError(
                     usr_msg=msg.format(respond.url,
                                        respond.status_code,
                                        respond.reason, respond.text))
@@ -401,11 +410,13 @@ class IBMQuantumExperience(object):
             if status == "DONE":
                 if "result" in execution and "data" in execution["result"]:
                     if "additionalData" in execution["result"]["data"]:
-                        result["extraInfo"] = execution["result"]["data"]["additionalData"]
+                        ad_aux = execution["result"]["data"]["additionalData"]
+                        result["extraInfo"] = ad_aux
                     if execution["result"]["data"].get('p', None):
                         result["measure"] = execution["result"]["data"]["p"]
                     if execution["result"]["data"].get('valsxyz', None):
-                        result["bloch"] = execution["result"]["data"]["valsxyz"]
+                        valsxyz = execution["result"]["data"]["valsxyz"]
+                        result["bloch"] = valsxyz
                     respond["result"] = result
                     respond.pop('infoQueue', None)
 
@@ -512,7 +523,6 @@ class IBMQuantumExperience(object):
         if not backend_type:
             raise BadBackendError(backend)
 
-
         ret = self.req.get('/Backends/' + backend_type + '/calibration')
         ret["backend"] = backend_type
         return ret
@@ -551,5 +561,5 @@ class IBMQuantumExperience(object):
             return {"error": "Not credentials valid"}
         else:
             return [backend for backend in self.req.get('/Backends')
-                    if backend.get('status') == 'on'
-                    and backend.get('simulator') is True]
+                    if backend.get('status') == 'on' and
+                    backend.get('simulator') is True]
