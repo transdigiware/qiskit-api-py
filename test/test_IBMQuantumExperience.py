@@ -12,10 +12,10 @@ sys.path.append('../IBMQuantumExperience')
 # pylint: disable=C0413
 if sys.version_info.major > 2:  # Python 3
     from IBMQuantumExperience.IBMQuantumExperience import IBMQuantumExperience  # noqa
-    from IBMQuantumExperience.IBMQuantumExperience import BadBackendError  # noqa
-else:                           # Python 2 
+else:  # Python 2
     from IBMQuantumExperience import IBMQuantumExperience  # noqa
-    from IBMQuantumExperience import BadBackendError  # noqa    
+
+from IBMQuantumExperience.IBMQuantumExperience import BadBackendError  # noqa
 
 qasm = """IBMQASM 2.0;
 
