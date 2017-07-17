@@ -3,16 +3,64 @@
 '''
 import json
 import time
-import requests
+import logging
 from datetime import datetime
+from time import sleep
+import sys
+import traceback
+import requests
 
+
+class QiskitApiError(Exception):
+    """
+    QISKit API error handling base class.
+    """
+    def __init__(self, usr_msg=None, dev_msg=None):
+        """
+        Parameters
+        ----------
+        usr_msg : str or None, optional
+           Short user facing message describing error.
+        dev_msg : str or None, optional
+           More detailed message to assist developer with resolving issue.
+        """
+        Exception.__init__(self, usr_msg)
+        self.usr_msg = usr_msg
+        self.dev_msg = dev_msg
+
+    def __repr__(self):
+        return repr(self.dev_msg)
+
+    def __str__(self):
+        return str(self.usr_msg)
+
+class BadBackendError(QiskitApiError):
+    """
+    Unavailable backend error.
+    """
+    def __init__(self, backend):
+        """
+        Parameters
+        ----------
+        backend : str
+           Name of backend.
+        """
+        usr_msg = ('Could not find backend "{0}" available.').format(backend)
+        dev_msg = ('Backend "{0}" does not exist. Please use available_backends'
+                   'to see options').format(backend)
+        QiskitApiError.__init__(self, usr_msg=usr_msg, dev_msg=dev_msg)
 
 class _Credentials(object):
 
     config_base = {'url': 'https://quantumexperience.ng.bluemix.net/api'}
 
-    def __init__(self, token, config=None):
+    def __init__(self, token, config=None, verify=True):
         self.token_unique = token
+        self.verify = verify
+        if not verify:
+            import requests.packages.urllib3 as urllib3
+            urllib3.disable_warnings()
+            print('-- Ignoring SSL errors.  This is not recommended --')
         if config and config.get('url', None):
             self.config = config
         else:
@@ -28,7 +76,8 @@ class _Credentials(object):
         self.data_credentials = requests.post(str(self.config.get('url') +
                                                   "/users/loginWithToken"),
                                               data={'apiToken':
-                                                    self.token_unique}).json()
+                                                    self.token_unique},
+                                              verify=self.verify).json()
 
         if not self.get_token():
             print('ERROR: Not token valid')
@@ -54,8 +103,16 @@ class _Credentials(object):
 
 class _Request(object):
 
-    def __init__(self, token, config=None):
-        self.credential = _Credentials(token, config)
+    def __init__(self, token, config=None, verify=True, retries=5,
+                 timeout_interval=1.0):
+        self.verify = verify
+        self.credential = _Credentials(token, config, verify)
+        self.log = logging.getLogger(__name__)
+        if not isinstance(retries, int):
+            raise TypeError('post retries must be positive integer')
+        self.retries = retries
+        self.timeout_interval = timeout_interval
+        self.result = None
 
     def check_token(self, respond):
         '''
@@ -74,10 +131,20 @@ class _Request(object):
         headers = {'Content-Type': 'application/json'}
         url = str(self.credential.config['url'] + path + '?access_token=' +
                   self.credential.get_token() + params)
-        respond = requests.post(url, data=data, headers=headers)
-        if not self.check_token(respond):
-            respond = requests.post(url, data=data, headers=headers)
-        return respond.json()
+        retries = self.retries
+        while retries > 0:
+            respond = requests.post(url, data=data, headers=headers,
+                                    verify=self.verify)
+            if not self.check_token(respond):
+                respond = requests.post(url, data=data, headers=headers,
+                                        verify=self.verify)
+            if self._response_good(respond):
+                return self.result
+            else:
+                retries -= 1
+                sleep(self.timeout_interval)
+        # timed out
+        raise QiskitApiError(usr_msg='Failed to get proper response from backend.')
 
     def get(self, path, params='', with_token=True):
         '''
@@ -89,55 +156,141 @@ class _Request(object):
             if access_token:
                 access_token = '?access_token=' + str(access_token)
         url = self.credential.config['url'] + path + access_token + params
-        respond = requests.get(url)
-        if not self.check_token(respond):
-            respond = requests.get(url)
-        return respond.json()
+        retries = self.retries
+        while retries > 0: # Repeat until no error
+            respond = requests.get(url, verify=self.verify)
+            if not self.check_token(respond):
+                respond = requests.get(url, verify=self.verify)
+            if self._response_good(respond):
+                return self.result
+            else:
+                retries -= 1
+                sleep(self.timeout_interval)
+        # timed out
+        raise QiskitApiError(usr_msg='Failed to get proper response from backend.')
+
+    def _response_good(self, respond):
+        """
+        check response
+
+        Parameters
+        ----------
+        respond : str
+           HTTP response.
+
+        Returns
+        -------
+        bool
+           True if the response is good, else False.
+
+        Raises
+        ------
+        Raises QiskitApiError if response isn't formatted properly.
+        """
+        if respond.status_code == 400:
+            self.log.warning("Got a 400 code response to %s", respond.url)
+            return False
+        try:
+            self.result = respond.json()
+        except Exception:
+            usr_msg = ('JSON conversion failed: url: {0}, status: {1},'
+                       'reason: {2}, text: {3}')
+            exc_type, exc_value, exc_traceback = None, None, None
+            try:
+                exc_type, exc_value, exc_traceback = sys.exc_info()
+            except:
+                raise
+            else:
+                err_list = traceback.format_exception(exc_type, exc_value,
+                                                      exc_traceback)
+                err_list = err_list[-2:]
+                module_info = err_list[0].split(',')
+                module_name = module_info[0].split('/')[-1].rstrip('"').split('.')[0]
+                module_line = module_info[1].lstrip()
+                dev_msg = '{0} {1} {2}'.format(module_name, module_line,
+                                               err_list[1])
+            finally:
+                # may not be necessary in python3 but should be safe and maybe
+                # avoid need to garbage collect cycle?
+                del exc_type, exc_value, exc_traceback
+
+            raise QiskitApiError(
+                usr_msg=usr_msg.format(respond.url, respond.status_code,
+                                       respond.reason, respond.text),
+                dev_msg=dev_msg)
+        else:
+            if not isinstance(self.result, (list, dict)):
+                msg = ('JSON not a list or dict: url: {0},'
+                       'status: {1}, reason: {2}, text: {3}')
+                raise QiskitApiError(
+                    usr_msg=msg.format(respond.url,
+                                       respond.status_code,
+                                       respond.reason, respond.text))
+        if ('error' not in self.result or
+                ('status' not in self.result['error'] or
+                 self.result['error']['status'] != 400)):
+            return True
+        else:
+            self.log.warning("Got a 400 code JSON response to %s", respond.url)
+            return False
 
 
 class IBMQuantumExperience(object):
     '''
     The Connector Class to do request to QX Platform
     '''
-    __names_device_ibmqxv2 = ['ibmqx5qv2', 'ibmqx2', 'qx5qv2', 'qx5q', 'real']
-    __names_device_ibmqxv3 = ['ibmqx3']
-    __names_device_simulator = ['simulator', 'sim_trivial_2',
-                                'ibmqx_qasm_simulator']
+    __names_backend_ibmqxv2 = ['ibmqx5qv2', 'ibmqx2', 'qx5qv2', 'qx5q', 'real']
+    __names_backend_ibmqxv3 = ['ibmqx3']
+    __names_backend_simulator = ['simulator', 'sim_trivial_2',
+                                 'ibmqx_qasm_simulator']
 
-    def __init__(self, token, config=None):
-        self.req = _Request(token, config)
+    def __init__(self, token, config=None, verify=True):
+        ''' If verify is set to false, ignore SSL certificate errors '''
+        self.req = _Request(token, config, verify)
 
-    def _check_device(self, device, endpoint):
+    def _check_backend(self, backend, endpoint):
         '''
-        Check if the name of a device is valid to run in QX Platform
+        Check if the name of a backend is valid to run in QX Platform
         '''
-        device = device.lower()
+        # First check against hacks for old backend names
+        original_backend = backend
+        backend = backend.lower()
         if endpoint == 'experiment':
-            if device in self.__names_device_ibmqxv2:
+            if backend in self.__names_backend_ibmqxv2:
                 return 'real'
-            elif device in self.__names_device_ibmqxv3:
+            elif backend in self.__names_backend_ibmqxv3:
                 return 'ibmqx3'
-            elif device in self.__names_device_simulator:
+            elif backend in self.__names_backend_simulator:
                 return 'sim_trivial_2'
         elif endpoint == 'job':
-            if device in self.__names_device_ibmqxv2:
+            if backend in self.__names_backend_ibmqxv2:
                 return 'real'
-            elif device in self.__names_device_ibmqxv3:
+            elif backend in self.__names_backend_ibmqxv3:
                 return 'ibmqx3'
-            elif device in self.__names_device_simulator:
+            elif backend in self.__names_backend_simulator:
                 return 'simulator'
         elif endpoint == 'status':
-            if device in self.__names_device_ibmqxv2:
+            if backend in self.__names_backend_ibmqxv2:
                 return 'chip_real'
-            elif device in self.__names_device_ibmqxv3:
+            elif backend in self.__names_backend_ibmqxv3:
                 return 'ibmqx3'
-            elif device in self.__names_device_simulator:
+            elif backend in self.__names_backend_simulator:
                 return 'chip_simulator'
         elif endpoint == 'calibration':
-            if device in self.__names_device_ibmqxv2:
+            if backend in self.__names_backend_ibmqxv2:
                 return 'ibmqx2'
-            elif device in self.__names_device_ibmqxv3:
+            elif backend in self.__names_backend_ibmqxv3:
                 return 'ibmqx3'
+
+        # Check for new-style backends
+        backends = self.available_backends()
+        for backend in backends:
+            if backend['name'] == original_backend:
+                if backend.get('simulator', False):
+                    return 'chip_simulator'
+                else:
+                    return original_backend
+        # backend unrecognized
         return None
 
     def check_credentials(self):
@@ -205,7 +358,7 @@ class IBMQuantumExperience(object):
         last = '/users/' + self.req.credential.get_user_id() + '/codes/lastest'
         return self.req.get(last, '&includeExecutions=true')['codes']
 
-    def run_experiment(self, qasm, device='simulator', shots=1, name=None,
+    def run_experiment(self, qasm, backend='simulator', shots=1, name=None,
                        seed=None, timeout=60):
         '''
         Execute an experiment
@@ -213,14 +366,12 @@ class IBMQuantumExperience(object):
         if not self.check_credentials():
             return {"error": "Not credentials valid"}
 
-        device_type = self._check_device(device, 'experiment')
-        if not device_type:
-            fmt = ("Device {} not exits in Quantum Experience. Only allow "
-                   "ibmqx2, ibmqx3 or simulator")
-            return {"error": fmt.format(device)}
+        backend_type = self._check_backend(backend, 'experiment')
+        if not backend_type:
+            raise BadBackendError(backend)
 
-        if device not in self.__names_device_simulator and seed:
-            return {"error": "Not seed allowed in " + device}
+        if backend not in self.__names_backend_simulator and seed:
+            return {"error": "Not seed allowed in " + backend}
 
         name = name or 'Experiment #{:%Y%m%d%H%M%S}'.format(datetime.now())
         qasm = qasm.replace('IBMQASM 2.0;', '').replace('OPENQASM 2.0;', '')
@@ -228,12 +379,12 @@ class IBMQuantumExperience(object):
 
         if seed and len(str(seed)) < 11 and str(seed).isdigit():
             params = '&shots={}&seed={}&deviceRunType={}'.format(shots, seed,
-                                                                 device_type)
+                                                                 backend_type)
             execution = self.req.post('/codes/execute', params, data)
         elif seed:
             return {"error": "Not seed allowed. Max 10 digits."}
         else:
-            params = '&shots={}&deviceRunType={}'.format(shots, device_type)
+            params = '&shots={}&deviceRunType={}'.format(shots, backend_type)
             execution = self.req.post('/codes/execute', params, data)
         respond = {}
         try:
@@ -281,7 +432,7 @@ class IBMQuantumExperience(object):
             respond["error"] = execution
             return respond
 
-    def run_job(self, qasms, device='simulator', shots=1,
+    def run_job(self, qasms, backend='simulator', shots=1,
                 max_credits=3, seed=None):
         '''
         Execute a job
@@ -296,21 +447,17 @@ class IBMQuantumExperience(object):
                 'maxCredits': max_credits,
                 'backend': {}}
 
-        device_type = self._check_device(device, 'job')
+        backend_type = self._check_backend(backend, 'job')
 
-        if not device_type:
-            fmt = ("Device {} not exits in Quantum Experience. Only allow "
-                   "ibmqx2, ibmqx3 or simulator")
-            return {"error": fmt.format(device)}
-        if device not in self.__names_device_simulator and seed:
-            return {"error": "Not seed allowed in " + device}
+        if not backend_type:
+            raise BadBackendError(backend)
 
         if seed and len(str(seed)) < 11 and str(seed).isdigit():
             data['seed'] = seed
         elif seed:
             return {"error": "Not seed allowed. Max 10 digits."}
 
-        data['backend']['name'] = device_type
+        data['backend']['name'] = backend_type
 
         job = self.req.post('/Jobs', data=json.dumps(data))
         return job
@@ -319,8 +466,16 @@ class IBMQuantumExperience(object):
         '''
         Get the information about a job, by its id
         '''
-        if not self.check_credentials() or not id_job:
-            return {"error": "Not credentials valid"}
+        if not self.check_credentials():
+            respond = {}
+            respond["status"] = 'Error'
+            respond["error"] = "Not credentials valid"
+            return respond
+        if not id_job:
+            respond = {}
+            respond["status"] = 'Error'
+            respond["error"] = "Job ID not specified"
+            return respond
         job = self.req.get('/Jobs/' + id_job)
         return job
 
@@ -333,62 +488,68 @@ class IBMQuantumExperience(object):
         jobs = self.req.get('/Jobs', '&filter={"limit":' + str(limit) + '}')
         return jobs
 
-    def device_status(self, device='ibmqx2'):
+    def backend_status(self, backend='ibmqx2'):
         '''
         Get the status of a chip
         '''
-        device_type = self._check_device(device, 'status')
-        if not device_type:
-            fmt = ("Device {} not exits in Quantum Experience. Only allow "
-                   "ibmqx2, ibmqx3 or simulator")
-            return {"error": fmt.format(device)}
+        backend_type = self._check_backend(backend, 'status')
+        if not backend_type:
+            raise BadBackendError(backend)
 
-        status = self.req.get('/Status/queue?device=' + device_type,
+        status = self.req.get('/Status/queue?backend=' + backend_type,
                               with_token=False)["state"]
         return {'available': bool(status)}
 
-    def device_calibration(self, device='ibmqx2'):
+    def backend_calibration(self, backend='ibmqx2'):
         '''
         Get the calibration of a real chip
         '''
         if not self.check_credentials():
             return {"error": "Not credentials valid"}
 
-        device_type = self._check_device(device, 'calibration')
+        backend_type = self._check_backend(backend, 'calibration')
 
-        if not device_type:
-            fmt = ("Device {} not exits in Quantum Experience Real Devices. "
-                   "Only allow ibmqx2, ibmqx3 or simulator")
-            return {"error": fmt.format(device)}
+        if not backend_type:
+            raise BadBackendError(backend)
 
-        ret = self.req.get('/Backends/' + device_type + '/calibration')
-        ret["device"] = device_type
+
+        ret = self.req.get('/Backends/' + backend_type + '/calibration')
+        ret["backend"] = backend_type
         return ret
 
-    def device_parameters(self, device='ibmqx2'):
+    def backend_parameters(self, backend='ibmqx2'):
         '''
         Get the parameters of calibration of a real chip
         '''
         if not self.check_credentials():
             return {"error": "Not credentials valid"}
 
-        device_type = self._check_device(device, 'calibration')
+        backend_type = self._check_backend(backend, 'calibration')
 
-        if not device_type:
-            fmt = ("Device {} not exits in Quantum Experience Real Devices. "
-                   "Only allow ibmqx2, ibmqx3 or simulator")
-            return {"error": fmt.format(device)}
+        if not backend_type:
+            raise BadBackendError(backend)
 
-        ret = self.req.get('/Backends/' + device_type + '/parameters')
-        ret["device"] = device_type
+        ret = self.req.get('/Backends/' + backend_type + '/parameters')
+        ret["backend"] = backend_type
         return ret
 
-    def available_devices(self):
+    def available_backends(self):
         '''
-        Get the devices availables to use in the QX Platform
+        Get the backends available to use in the QX Platform
         '''
         if not self.check_credentials():
             return {"error": "Not credentials valid"}
         else:
-            return [device for device in self.req.get('/Backends')
-                    if device.get('status') == 'on']
+            return [backend for backend in self.req.get('/Backends')
+                    if backend.get('status') == 'on']
+
+    def available_backend_simulators(self):
+        '''
+        Get the backend simulators available to use in the QX Platform
+        '''
+        if not self.check_credentials():
+            return {"error": "Not credentials valid"}
+        else:
+            return [backend for backend in self.req.get('/Backends')
+                    if backend.get('status') == 'on'
+                    and backend.get('simulator') is True]

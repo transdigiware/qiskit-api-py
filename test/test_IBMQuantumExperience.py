@@ -12,8 +12,10 @@ sys.path.append('../IBMQuantumExperience')
 # pylint: disable=C0413
 if sys.version_info.major > 2:  # Python 3
     from IBMQuantumExperience.IBMQuantumExperience import IBMQuantumExperience  # noqa
+    from IBMQuantumExperience.IBMQuantumExperience import BadBackendError  # noqa
 else:                           # Python 2 
     from IBMQuantumExperience import IBMQuantumExperience  # noqa
+    from IBMQuantumExperience import BadBackendError  # noqa    
 
 qasm = """IBMQASM 2.0;
 
@@ -76,9 +78,9 @@ class TestQX(unittest.TestCase):
         Check run an experiment by user authenticated
         '''
         api = IBMQuantumExperience(API_TOKEN)
-        device = 'simulator'
+        backend = api.available_backend_simulators()[0]['name']
         shots = 1
-        experiment = api.run_experiment(qasm, device, shots)
+        experiment = api.run_experiment(qasm, backend, shots)
         self.assertIsNotNone(experiment['status'])
 
     def test_api_run_experiment_with_seed(self):
@@ -86,43 +88,42 @@ class TestQX(unittest.TestCase):
         Check run an experiment with seed by user authenticated
         '''
         api = IBMQuantumExperience(API_TOKEN)
-        device = 'simulator'
+        backend = api.available_backend_simulators()[0]['name']
         shots = 1
         seed = 815
-        experiment = api.run_experiment(qasm, device, shots, seed=seed)
+        experiment = api.run_experiment(qasm, backend, shots, seed=seed)
         self.assertEqual(int(experiment['result']['extraInfo']['seed']), seed)
 
-    def test_api_run_experiment_fail_device(self):
+    def test_api_run_experiment_fail_backend(self):
         '''
         Check run an experiment by user authenticated is not run because the
-        device does not exist
+        backend does not exist
         '''
         api = IBMQuantumExperience(API_TOKEN)
-        device = '5qreal'
+        backend = '5qreal'
         shots = 1
-        experiment = api.run_experiment(qasm, device, shots)
-        self.assertIsNotNone(experiment['error'])
+        self.assertRaises(BadBackendError,
+                          api.run_experiment, qasm, backend, shots)
 
     def test_api_run_job(self):
         '''
         Check run an job by user authenticated
         '''
         api = IBMQuantumExperience(API_TOKEN)
-        device = 'simulator'
+        backend = 'simulator'
         shots = 1
-        job = api.run_job(qasms, device, shots)
+        job = api.run_job(qasms, backend, shots)
         self.assertIsNotNone(job['status'])
 
-    def test_api_run_job_fail_device(self):
+    def test_api_run_job_fail_backend(self):
         '''
-        Check run an job by user authenticated is not run because the device
+        Check run an job by user authenticated is not run because the backend
         does not exist
         '''
         api = IBMQuantumExperience(API_TOKEN)
-        device = 'real5'
+        backend = 'real5'
         shots = 1
-        job = api.run_job(qasms, device, shots)
-        self.assertIsNotNone(job['error'])
+        self.assertRaises(BadBackendError, api.run_job, qasms, backend, shots)
 
     def test_api_get_jobs(self):
         '''
@@ -132,38 +133,46 @@ class TestQX(unittest.TestCase):
         jobs = api.get_jobs(2)
         self.assertEqual(len(jobs), 2)
 
-    def test_api_device_status(self):
+    def test_api_backend_status(self):
         '''
         Check the status of a real chip
         '''
         api = IBMQuantumExperience(API_TOKEN)
-        is_available = api.device_status()
+        is_available = api.backend_status()
         self.assertIsNotNone(is_available)
 
-    def test_api_device_calibration(self):
+    def test_api_backend_calibration(self):
         '''
         Check the calibration of a real chip
         '''
         api = IBMQuantumExperience(API_TOKEN)
-        calibration = api.device_calibration()
+        calibration = api.backend_calibration()
         self.assertIsNotNone(calibration)
 
-    def test_api_device_parameters(self):
+    def test_api_backend_parameters(self):
         '''
         Check the parameters of calibration of a real chip
         '''
         api = IBMQuantumExperience(API_TOKEN)
-        parameters = api.device_parameters()
+        parameters = api.backend_parameters()
         self.assertIsNotNone(parameters)
 
-    def test_api_devices_availables(self):
+    def test_api_backends_availables(self):
         '''
-        Check the devices availables
+        Check the backends availables
         '''
         api = IBMQuantumExperience(API_TOKEN)
-        devices = api.available_devices()
-        self.assertGreaterEqual(len(devices), 2)
+        backends = api.available_backends()
+        self.assertGreaterEqual(len(backends), 2)
 
+    def test_api_backend_simulators_available(self):
+        '''
+        Check the backend simulators available
+        '''
+        api = IBMQuantumExperience(API_TOKEN)
+        backends = api.available_backend_simulators()
+        self.assertGreaterEqual(len(backends), 1)
+        
 
 if __name__ == '__main__':
     suite = unittest.TestLoader().loadTestsFromTestCase(TestQX)
