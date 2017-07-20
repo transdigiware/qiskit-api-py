@@ -197,7 +197,8 @@ class _Request(object):
         properly.
         '''
         if respond.status_code == 400:
-            self.log.warning("Got a 400 code response to %s", respond.url)
+            self.log.warning("Got a 400 code response to %s: %s", respond.url,
+                             respond.json())
             return False
         try:
             self.result = respond.json()
