@@ -281,11 +281,11 @@ class IBMQuantumExperience(object):
                 return 'simulator'
         elif endpoint == 'status':
             if backend in self.__names_backend_ibmqxv2:
-                return 'chip_real'
+                return 'ibmqx2'
             elif backend in self.__names_backend_ibmqxv3:
                 return 'ibmqx3'
             elif backend in self.__names_backend_simulator:
-                return 'chip_simulator'
+                return 'ibmqx_qasm_simulator'
         elif endpoint == 'calibration':
             if backend in self.__names_backend_ibmqxv2:
                 return 'ibmqx2'
@@ -494,6 +494,17 @@ class IBMQuantumExperience(object):
             respond["error"] = "Job ID not specified"
             return respond
         job = self.req.get('/Jobs/' + id_job)
+
+        # To remove result object and add the attributes to data object
+        if ('qasms' in job):
+            for qasm in job['qasms']:
+                if ('result' in qasm) and ('data' in qasm['result']):
+                    qasm['data'] = qasm['result']['data']
+                    del qasm['result']['data']
+                    for key in qasm['result']:
+                        qasm['data'][key] = qasm['result'][key]
+                    del qasm['result']
+
         return job
 
     def get_jobs(self, limit=50):
@@ -513,8 +524,9 @@ class IBMQuantumExperience(object):
         if not backend_type:
             raise BadBackendError(backend)
 
-        status = self.req.get('/Status/queue?backend=' + backend_type,
-                              with_token=False)["state"]
+        status = self.req.get('/Backends/' + backend_type + '/queue/status',
+                              with_token=False)['state']
+
         return {'available': bool(status)}
 
     def backend_calibration(self, backend='ibmqx2'):
