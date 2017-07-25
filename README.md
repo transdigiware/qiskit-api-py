@@ -61,6 +61,14 @@ config = {
 
 ### Methods
 
+### User Info
+
+To get the information about the credits of the user, you only need call to:
+
+```python
+api.get_my_credits()
+```
+
 #### Codes
 
 To get the information of a Code, including the last executions about this Code, you only need the codeId:

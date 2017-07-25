@@ -66,6 +66,17 @@ class TestQX(unittest.TestCase):
         credential = api.check_credentials()
         self.assertTrue(credential)
 
+    def test_api_get_my_credits(self):
+        '''
+        Check the credits of the user
+        '''
+        api = IBMQuantumExperience(API_TOKEN)
+        my_credits = api.get_my_credits()
+        check_credits = None
+        if 'remaining' in my_credits:
+            check_credits = my_credits['remaining']
+        self.assertIsNotNone(check_credits)
+
     def test_api_last_codes(self):
         '''
         Check last code by user authenticated
@@ -81,7 +92,10 @@ class TestQX(unittest.TestCase):
         backend = api.available_backend_simulators()[0]['name']
         shots = 1
         experiment = api.run_experiment(qasm, backend, shots)
-        self.assertIsNotNone(experiment['status'])
+        check_status = None
+        if 'status' in experiment:
+            check_status = experiment['status']
+        self.assertIsNotNone(check_status)
 
     def test_api_run_experiment_with_seed(self):
         '''
@@ -92,7 +106,12 @@ class TestQX(unittest.TestCase):
         shots = 1
         seed = 815
         experiment = api.run_experiment(qasm, backend, shots, seed=seed)
-        self.assertEqual(int(experiment['result']['extraInfo']['seed']), seed)
+        check_seed = -1
+        if ('result' in experiment) and \
+           ('extraInfo' in experiment['result']) and \
+           ('seed' in experiment['result']['extraInfo']):
+            check_seed = int(experiment['result']['extraInfo']['seed'])
+        self.assertEqual(check_seed, seed)
 
     def test_api_run_experiment_fail_backend(self):
         '''
@@ -113,7 +132,10 @@ class TestQX(unittest.TestCase):
         backend = 'simulator'
         shots = 1
         job = api.run_job(qasms, backend, shots)
-        self.assertIsNotNone(job['status'])
+        check_status = None
+        if 'status' in job:
+            check_status = job['status']
+        self.assertIsNotNone(check_status)
 
     def test_api_run_job_fail_backend(self):
         '''

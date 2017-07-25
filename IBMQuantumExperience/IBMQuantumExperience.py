@@ -291,6 +291,8 @@ class IBMQuantumExperience(object):
                 return 'ibmqx2'
             elif backend in self.__names_backend_ibmqxv3:
                 return 'ibmqx3'
+            elif backend in self.__names_backend_simulator:
+                return 'ibmqx_qasm_simulator'
 
         # Check for new-style backends
         backends = self.available_backends()
@@ -541,6 +543,12 @@ class IBMQuantumExperience(object):
         if not backend_type:
             raise BadBackendError(backend)
 
+        if backend_type in self.__names_backend_simulator:
+            ret = {}
+            ret["backend"] = backend_type
+            ret["calibrations"] = None
+            return ret
+
         ret = self.req.get('/Backends/' + backend_type + '/calibration')
         ret["backend"] = backend_type
         return ret
@@ -556,6 +564,12 @@ class IBMQuantumExperience(object):
 
         if not backend_type:
             raise BadBackendError(backend)
+
+        if backend_type in self.__names_backend_simulator:
+            ret = {}
+            ret["backend"] = backend_type
+            ret["parameters"] = None
+            return ret
 
         ret = self.req.get('/Backends/' + backend_type + '/parameters')
         ret["backend"] = backend_type
@@ -581,3 +595,20 @@ class IBMQuantumExperience(object):
             return [backend for backend in self.req.get('/Backends')
                     if backend.get('status') == 'on' and
                     backend.get('simulator') is True]
+
+    def get_my_credits(self):
+        '''
+        Get the the credits by user to use in the QX Platform
+        '''
+        if not self.check_credentials():
+            return {"error": "Not credentials valid"}
+        else:
+            user_data_url = '/users/' + self.req.credential.get_user_id()
+            user_data = self.req.get(user_data_url)
+            if "credit" in user_data:
+                if "promotionalCodesUsed" in user_data["credit"]:
+                    del user_data["credit"]["promotionalCodesUsed"]
+                if "lastRefill" in user_data["credit"]:
+                    del user_data["credit"]["lastRefill"]
+                return user_data["credit"]
+            return {}
