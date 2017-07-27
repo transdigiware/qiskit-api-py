@@ -10,7 +10,7 @@ import traceback
 import requests
 
 
-class IBMQuantumExperienceApiError(Exception):
+class ApiError(Exception):
     '''
     IBMQuantumExperience API error handling base class.
     '''
@@ -34,7 +34,7 @@ class IBMQuantumExperienceApiError(Exception):
         return str(self.usr_msg)
 
 
-class BadBackendError(IBMQuantumExperienceApiError):
+class BadBackendError(ApiError):
     '''
     Unavailable backend error.
     '''
@@ -48,8 +48,8 @@ class BadBackendError(IBMQuantumExperienceApiError):
         usr_msg = ('Could not find backend "{0}" available.').format(backend)
         dev_msg = ('Backend "{0}" does not exist. Please use '
                    'available_backends to see options').format(backend)
-        IBMQuantumExperienceApiError.__init__(self, usr_msg=usr_msg,
-                                              dev_msg=dev_msg)
+        ApiError.__init__(self, usr_msg=usr_msg,
+                          dev_msg=dev_msg)
 
 
 class _Credentials(object):
@@ -83,8 +83,8 @@ class _Credentials(object):
                                                     self.token_unique},
                                               verify=self.verify).json()
 
-        if not self.get_token():
-            print('ERROR: Not token valid')
+        if self.get_token() is None:
+            raise ApiError('invalid token')
 
     def get_token(self):
         '''
@@ -150,8 +150,8 @@ class _Request(object):
                 retries -= 1
                 time.sleep(self.timeout_interval)
         # timed out
-        raise IBMQuantumExperienceApiError(usr_msg='Failed to get proper ' +
-                                           'response from backend.')
+        raise ApiError(usr_msg='Failed to get proper ' +
+                       'response from backend.')
 
     def get(self, path, params='', with_token=True):
         '''
@@ -174,8 +174,8 @@ class _Request(object):
                 retries -= 1
                 time.sleep(self.timeout_interval)
         # timed out
-        raise IBMQuantumExperienceApiError(usr_msg='Failed to get proper ' +
-                                           'response from backend.')
+        raise ApiError(usr_msg='Failed to get proper ' +
+                       'response from backend.')
 
     def _response_good(self, respond):
         '''
@@ -193,7 +193,7 @@ class _Request(object):
 
         Raises
         ------
-        Raises IBMQuantumExperienceApiError if response isn't formatted
+        Raises ApiError if response isn't formatted
         properly.
         '''
         if respond.status_code == 400:
@@ -224,7 +224,7 @@ class _Request(object):
                 # avoid need to garbage collect cycle?
                 del exc_type, exc_value, exc_traceback
 
-            raise IBMQuantumExperienceApiError(
+            raise ApiError(
                 usr_msg=usr_msg.format(respond.url, respond.status_code,
                                        respond.reason, respond.text),
                 dev_msg=dev_msg)
@@ -232,7 +232,7 @@ class _Request(object):
             if not isinstance(self.result, (list, dict)):
                 msg = ('JSON not a list or dict: url: {0},'
                        'status: {1}, reason: {2}, text: {3}')
-                raise IBMQuantumExperienceApiError(
+                raise ApiError(
                     usr_msg=msg.format(respond.url,
                                        respond.status_code,
                                        respond.reason, respond.text))
