@@ -527,9 +527,15 @@ class IBMQuantumExperience(object):
             raise BadBackendError(backend)
 
         status = self.req.get('/Backends/' + backend_type + '/queue/status',
-                              with_token=False)['state']
+                              with_token=False)
 
-        return {'available': bool(status)}
+        ret = {}
+        if 'state' in status:
+            ret['available'] = bool(status['state'])
+        if 'busy' in status:
+            ret['busy'] = bool(status['busy'])
+
+        return ret
 
     def backend_calibration(self, backend='ibmqx2'):
         '''

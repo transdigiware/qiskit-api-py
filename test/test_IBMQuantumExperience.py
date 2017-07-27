@@ -161,7 +161,7 @@ class TestQX(unittest.TestCase):
         '''
         api = IBMQuantumExperience(API_TOKEN)
         is_available = api.backend_status()
-        self.assertIsNotNone(is_available)
+        self.assertIsNotNone(is_available['available'])
 
     def test_api_backend_calibration(self):
         '''
