@@ -45,10 +45,10 @@ else:                           # Python 2
     from IBMQuantumExperience import IBMQuantumExperience
 ```
 
-Then, initialize your IBM Quantum Experience connection by supplying your *token*. You can obtain the token from **Account** area of *Quantum Experience Platform* in *Personal Access Token* section. An optional object knows as *config* has several extra options to customize, like the url of the API:
+Then, initialize your IBM Quantum Experience connection by supplying your *token*. You can obtain the token from **Account** area of *Quantum Experience Platform* in *Personal Access Token* section. The constructor has an attribute called *verify* to ignore or not SSL certificate errors, and an optional object knows as *config* has several extra options to customize, like the url of the API:
 
 ```python
-api = IBMQuantumExperience("token", config)
+api = IBMQuantumExperience("token", config, verify)
 ```
 
 By default, the config parameter is defined like:
@@ -57,6 +57,12 @@ By default, the config parameter is defined like:
 config = {
    "url": 'https://quantumexperience.ng.bluemix.net/api'
 }
+```
+
+If verify is set to false, ignore SSL certificate errors
+
+```
+verify = True
 ```
 
 ### Methods
