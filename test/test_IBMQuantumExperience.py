@@ -14,10 +14,17 @@ if sys.version_info.major > 2:  # Python 3
     from IBMQuantumExperience.IBMQuantumExperience import IBMQuantumExperience  # noqa
 else:  # Python 2
     from IBMQuantumExperience import IBMQuantumExperience  # noqa
+from IBMQuantumExperience.IBMQuantumExperience import ApiError
+from IBMQuantumExperience.IBMQuantumExperience import BadBackendError  # noq
 
-from IBMQuantumExperience.IBMQuantumExperience import BadBackendError  # noqa
 
-qasm = """IBMQASM 2.0;
+class TestQX(unittest.TestCase):
+    '''
+    Class with the unit tests
+    '''
+
+    def setUp(self):
+        self.qasm = """IBMQASM 2.0;
 
 include "qelib1.inc";
 qreg q[5];
@@ -31,8 +38,8 @@ u3(-pi,0,-pi/2) q[0];
 measure q -> c;
 """
 
-qasms = [{"qasm": qasm},
-         {"qasm": """IBMQASM 2.0;
+        self.qasms = [{"qasm": self.qasm},
+                      {"qasm": """IBMQASM 2.0;
 
 include "qelib1.inc";
 qreg q[5];
@@ -41,22 +48,12 @@ x q[0];
 measure q -> c;
 """}]
 
-
-class TestQX(unittest.TestCase):
-    '''
-    Class with the unit tests
-    '''
-
-    def setUp(self):
-        pass
-
     def tearDown(self):
         pass
 
-    """ ---------------------------------
-            TESTS
-        ---------------------------------
-    """
+    # ---------------------------------
+    #        TESTS
+    #----------------------------------
 
     def test_api_auth_token(self):
         '''
@@ -77,6 +74,13 @@ class TestQX(unittest.TestCase):
             check_credits = my_credits['remaining']
         self.assertIsNotNone(check_credits)
 
+    def test_api_auth_token_fail(self):
+        '''
+        Authentication with Quantum Experience Platform
+        '''
+        self.assertRaises(ApiError,
+                          IBMQuantumExperience, 'fail')
+
     def test_api_last_codes(self):
         '''
         Check last code by user authenticated
@@ -91,7 +95,7 @@ class TestQX(unittest.TestCase):
         api = IBMQuantumExperience(API_TOKEN)
         backend = api.available_backend_simulators()[0]['name']
         shots = 1
-        experiment = api.run_experiment(qasm, backend, shots)
+        experiment = api.run_experiment(self.qasm, backend, shots)
         check_status = None
         if 'status' in experiment:
             check_status = experiment['status']
@@ -105,7 +109,7 @@ class TestQX(unittest.TestCase):
         backend = api.available_backend_simulators()[0]['name']
         shots = 1
         seed = 815
-        experiment = api.run_experiment(qasm, backend, shots, seed=seed)
+        experiment = api.run_experiment(self.qasm, backend, shots, seed=seed)
         check_seed = -1
         if ('result' in experiment) and \
            ('extraInfo' in experiment['result']) and \
@@ -122,7 +126,7 @@ class TestQX(unittest.TestCase):
         backend = '5qreal'
         shots = 1
         self.assertRaises(BadBackendError,
-                          api.run_experiment, qasm, backend, shots)
+                          api.run_experiment, self.qasm, backend, shots)
 
     def test_api_run_job(self):
         '''
@@ -131,7 +135,7 @@ class TestQX(unittest.TestCase):
         api = IBMQuantumExperience(API_TOKEN)
         backend = 'simulator'
         shots = 1
-        job = api.run_job(qasms, backend, shots)
+        job = api.run_job(self.qasms, backend, shots)
         check_status = None
         if 'status' in job:
             check_status = job['status']
@@ -145,7 +149,8 @@ class TestQX(unittest.TestCase):
         api = IBMQuantumExperience(API_TOKEN)
         backend = 'real5'
         shots = 1
-        self.assertRaises(BadBackendError, api.run_job, qasms, backend, shots)
+        self.assertRaises(BadBackendError, api.run_job, self.qasms, backend,
+                          shots)
 
     def test_api_get_jobs(self):
         '''
@@ -194,7 +199,6 @@ class TestQX(unittest.TestCase):
         api = IBMQuantumExperience(API_TOKEN)
         backends = api.available_backend_simulators()
         self.assertGreaterEqual(len(backends), 1)
-        
 
 if __name__ == '__main__':
     suite = unittest.TestLoader().loadTestsFromTestCase(TestQX)
