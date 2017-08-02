@@ -1,6 +1,6 @@
-'''
+"""
     IBM Quantum Experience Python API Client
-'''
+"""
 import json
 import time
 import logging
@@ -10,52 +10,10 @@ import traceback
 import requests
 
 
-class ApiError(Exception):
-    '''
-    IBMQuantumExperience API error handling base class.
-    '''
-    def __init__(self, usr_msg=None, dev_msg=None):
-        '''
-        Parameters
-        ----------
-        usr_msg : str or None, optional
-           Short user facing message describing error.
-        dev_msg : str or None, optional
-           More detailed message to assist developer with resolving issue.
-        '''
-        Exception.__init__(self, usr_msg)
-        self.usr_msg = usr_msg
-        self.dev_msg = dev_msg
-
-    def __repr__(self):
-        return repr(self.dev_msg)
-
-    def __str__(self):
-        return str(self.usr_msg)
-
-
-class BadBackendError(ApiError):
-    '''
-    Unavailable backend error.
-    '''
-    def __init__(self, backend):
-        '''
-        Parameters
-        ----------
-        backend : str
-           Name of backend.
-        '''
-        usr_msg = ('Could not find backend "{0}" available.').format(backend)
-        dev_msg = ('Backend "{0}" does not exist. Please use '
-                   'available_backends to see options').format(backend)
-        ApiError.__init__(self, usr_msg=usr_msg,
-                          dev_msg=dev_msg)
-
-
 class _Credentials(object):
-    '''
+    """
     The Credential class to manage the tokens
-    '''
+    """
     config_base = {'url': 'https://quantumexperience.ng.bluemix.net/api'}
 
     def __init__(self, token, config=None, verify=True):
@@ -74,9 +32,11 @@ class _Credentials(object):
         self.obtain_token()
 
     def obtain_token(self):
-        '''
-        Obtain the token to access to QX Platform
-        '''
+        """Obtain the token to access to QX Platform.
+
+        Raises:
+            CredentialsError: when token is invalid.
+        """
         self.data_credentials = requests.post(str(self.config.get('url') +
                                                   "/users/loginWithToken"),
                                               data={'apiToken':
@@ -84,31 +44,31 @@ class _Credentials(object):
                                               verify=self.verify).json()
 
         if self.get_token() is None:
-            raise ApiError('invalid token')
+            raise CredentialsError('invalid token')
 
     def get_token(self):
-        '''
+        """
         Get Authenticated Token to connect with QX Platform
-        '''
+        """
         return self.data_credentials.get('id', None)
 
     def get_user_id(self):
-        '''
+        """
         Get User Id in QX Platform
-        '''
+        """
         return self.data_credentials.get('userId', None)
 
     def get_config(self):
-        '''
+        """
         Get Configuration setted to connect with QX Platform
-        '''
+        """
         return self.config
 
 
 class _Request(object):
-    '''
+    """
     The Request class to manage the methods
-    '''
+    """
     def __init__(self, token, config=None, verify=True, retries=5,
                  timeout_interval=1.0):
         self.verify = verify
@@ -121,18 +81,18 @@ class _Request(object):
         self.result = None
 
     def check_token(self, respond):
-        '''
+        """
         Check is the user's token is valid
-        '''
+        """
         if respond.status_code == 401:
             self.credential.obtain_token()
             return False
         return True
 
     def post(self, path, params='', data=None):
-        '''
+        """
         POST Method Wrapper of the REST API
-        '''
+        """
         data = data or {}
         headers = {'Content-Type': 'application/json'}
         url = str(self.credential.config['url'] + path + '?access_token=' +
@@ -154,9 +114,9 @@ class _Request(object):
                        'response from backend.')
 
     def get(self, path, params='', with_token=True):
-        '''
+        """
         GET Method Wrapper of the REST API
-        '''
+        """
         access_token = ''
         if with_token:
             access_token = self.credential.get_token() or ''
@@ -178,24 +138,17 @@ class _Request(object):
                        'response from backend.')
 
     def _response_good(self, respond):
-        '''
-        check response
+        """check response
 
-        Parameters
-        ----------
-        respond : str
-           HTTP response.
+        Args:
+            respond (str): HTTP response.
 
-        Returns
-        -------
-        bool
-           True if the response is good, else False.
+        Returns:
+            bool: True if the response is good, else False.
 
-        Raises
-        ------
-        Raises ApiError if response isn't formatted
-        properly.
-        '''
+        Raises:
+            ApiError: response isn't formatted properly.
+        """
         if respond.status_code == 400:
             self.log.warning("Got a 400 code response to %s: %s", respond.url,
                              respond.json())
@@ -246,22 +199,22 @@ class _Request(object):
 
 
 class IBMQuantumExperience(object):
-    '''
+    """
     The Connector Class to do request to QX Platform
-    '''
+    """
     __names_backend_ibmqxv2 = ['ibmqx5qv2', 'ibmqx2', 'qx5qv2', 'qx5q', 'real']
     __names_backend_ibmqxv3 = ['ibmqx3']
     __names_backend_simulator = ['simulator', 'sim_trivial_2',
                                  'ibmqx_qasm_simulator']
 
     def __init__(self, token, config=None, verify=True):
-        ''' If verify is set to false, ignore SSL certificate errors '''
+        """ If verify is set to false, ignore SSL certificate errors """
         self.req = _Request(token, config, verify)
 
     def _check_backend(self, backend, endpoint):
-        '''
+        """
         Check if the name of a backend is valid to run in QX Platform
-        '''
+        """
         # First check against hacks for old backend names
         original_backend = backend
         backend = backend.lower()
@@ -306,28 +259,28 @@ class IBMQuantumExperience(object):
         return None
 
     def check_credentials(self):
-        '''
+        """
         Check if the user has permission in QX platform
-        '''
+        """
         return bool(self.req.credential.get_token())
 
     def get_execution(self, id_execution):
-        '''
+        """
         Get a execution, by its id
-        '''
+        """
         if not self.check_credentials():
-            return {"error": "Not credentials valid"}
+            raise CredentialsError('credentials invalid')
         execution = self.req.get('/Executions/' + id_execution)
         if execution["codeId"]:
             execution['code'] = self.get_code(execution["codeId"])
         return execution
 
     def get_result_from_execution(self, id_execution):
-        '''
+        """
         Get the result of a execution, byt the execution id
-        '''
+        """
         if not self.check_credentials():
-            return {"error": "Not credentials valid"}
+            raise CredentialsError('credentials invalid')
         execution = self.req.get('/Executions/' + id_execution)
         result = {}
         if "result" in execution and "data" in execution["result"]:
@@ -344,11 +297,11 @@ class IBMQuantumExperience(object):
         return result
 
     def get_code(self, id_code):
-        '''
+        """
         Get a code, by its id
-        '''
+        """
         if not self.check_credentials():
-            return {"error": "Not credentials valid"}
+            raise CredentialsError('credentials invalid')
         code = self.req.get('/Codes/' + id_code)
         executions = self.req.get('/Codes/' + id_code + '/executions',
                                   '&filter={"limit":3}')
@@ -357,36 +310,37 @@ class IBMQuantumExperience(object):
         return code
 
     def get_image_code(self, id_code):
-        '''
+        """
         Get the image of a code, by its id
-        '''
+        """
         if not self.check_credentials():
-            return {"error": "Not credentials valid"}
+            raise CredentialsError('credentials invalid')
         return self.req.get('/Codes/' + id_code + '/export/png/url')
 
     def get_last_codes(self):
-        '''
+        """
         Get the last codes of the user
-        '''
+        """
         if not self.check_credentials():
-            return {"error": "Not credentials valid"}
+            raise CredentialsError('credentials invalid')
         last = '/users/' + self.req.credential.get_user_id() + '/codes/lastest'
         return self.req.get(last, '&includeExecutions=true')['codes']
 
     def run_experiment(self, qasm, backend='simulator', shots=1, name=None,
                        seed=None, timeout=60):
-        '''
+        """
         Execute an experiment
-        '''
+        """
         if not self.check_credentials():
-            return {"error": "Not credentials valid"}
+            raise CredentialsError('credentials invalid')
 
         backend_type = self._check_backend(backend, 'experiment')
         if not backend_type:
             raise BadBackendError(backend)
 
         if backend not in self.__names_backend_simulator and seed:
-            return {"error": "Not seed allowed in " + backend}
+            raise ApiError('seed not allowed for'
+                           ' non-simulator backend "{}"'.format(backend))
 
         name = name or 'Experiment #{:%Y%m%d%H%M%S}'.format(datetime.now())
         qasm = qasm.replace('IBMQASM 2.0;', '').replace('OPENQASM 2.0;', '')
@@ -397,7 +351,8 @@ class IBMQuantumExperience(object):
                                                                  backend_type)
             execution = self.req.post('/codes/execute', params, data)
         elif seed:
-            return {"error": "Not seed allowed. Max 10 digits."}
+            raise ApiError('invalid seed ({}), seeds can have'
+                           ' a maximum length of 10 digits'.format(seed))
         else:
             params = '&shots={}&deviceRunType={}'.format(shots, backend_type)
             execution = self.req.post('/codes/execute', params, data)
@@ -453,9 +408,9 @@ class IBMQuantumExperience(object):
 
     def run_job(self, qasms, backend='simulator', shots=1,
                 max_credits=3, seed=None):
-        '''
+        """
         Execute a job
-        '''
+        """
         if not self.check_credentials():
             return {"error": "Not credentials valid"}
         for qasm in qasms:
@@ -482,9 +437,9 @@ class IBMQuantumExperience(object):
         return job
 
     def get_job(self, id_job):
-        '''
+        """
         Get the information about a job, by its id
-        '''
+        """
         if not self.check_credentials():
             respond = {}
             respond["status"] = 'Error'
@@ -498,7 +453,7 @@ class IBMQuantumExperience(object):
         job = self.req.get('/Jobs/' + id_job)
 
         # To remove result object and add the attributes to data object
-        if ('qasms' in job):
+        if 'qasms' in job:
             for qasm in job['qasms']:
                 if ('result' in qasm) and ('data' in qasm['result']):
                     qasm['data'] = qasm['result']['data']
@@ -510,18 +465,18 @@ class IBMQuantumExperience(object):
         return job
 
     def get_jobs(self, limit=50):
-        '''
+        """
         Get the information about the user jobs
-        '''
+        """
         if not self.check_credentials():
             return {"error": "Not credentials valid"}
         jobs = self.req.get('/Jobs', '&filter={"limit":' + str(limit) + '}')
         return jobs
 
     def backend_status(self, backend='ibmqx2'):
-        '''
+        """
         Get the status of a chip
-        '''
+        """
         backend_type = self._check_backend(backend, 'status')
         if not backend_type:
             raise BadBackendError(backend)
@@ -532,11 +487,11 @@ class IBMQuantumExperience(object):
         return {'available': bool(status)}
 
     def backend_calibration(self, backend='ibmqx2'):
-        '''
+        """
         Get the calibration of a real chip
-        '''
+        """
         if not self.check_credentials():
-            return {"error": "Not credentials valid"}
+            raise CredentialsError('credentials invalid')
 
         backend_type = self._check_backend(backend, 'calibration')
 
@@ -554,11 +509,11 @@ class IBMQuantumExperience(object):
         return ret
 
     def backend_parameters(self, backend='ibmqx2'):
-        '''
+        """
         Get the parameters of calibration of a real chip
-        '''
+        """
         if not self.check_credentials():
-            return {"error": "Not credentials valid"}
+            raise CredentialsError('credentials invalid')
 
         backend_type = self._check_backend(backend, 'calibration')
 
@@ -576,32 +531,32 @@ class IBMQuantumExperience(object):
         return ret
 
     def available_backends(self):
-        '''
+        """
         Get the backends available to use in the QX Platform
-        '''
+        """
         if not self.check_credentials():
-            return {"error": "Not credentials valid"}
+            raise CredentialsError('credentials invalid')
         else:
             return [backend for backend in self.req.get('/Backends')
                     if backend.get('status') == 'on']
 
     def available_backend_simulators(self):
-        '''
+        """
         Get the backend simulators available to use in the QX Platform
-        '''
+        """
         if not self.check_credentials():
-            return {"error": "Not credentials valid"}
+            raise CredentialsError('credentials invalid')
         else:
             return [backend for backend in self.req.get('/Backends')
                     if backend.get('status') == 'on' and
                     backend.get('simulator') is True]
 
     def get_my_credits(self):
-        '''
+        """
         Get the the credits by user to use in the QX Platform
-        '''
+        """
         if not self.check_credentials():
-            return {"error": "Not credentials valid"}
+            raise CredentialsError('credentials invalid')
         else:
             user_data_url = '/users/' + self.req.credential.get_user_id()
             user_data = self.req.get(user_data_url)
@@ -612,3 +567,47 @@ class IBMQuantumExperience(object):
                     del user_data["credit"]["lastRefill"]
                 return user_data["credit"]
             return {}
+
+class ApiError(Exception):
+    """
+    IBMQuantumExperience API error handling base class.
+    """
+    def __init__(self, usr_msg=None, dev_msg=None):
+        """
+        Args:
+            usr_msg (str or None, optional): Short user facing message
+                describing error.
+            dev_msg (str or None, optional): More detailed message to assist
+                developer with resolving issue.
+        """
+        Exception.__init__(self, usr_msg)
+        self.usr_msg = usr_msg
+        self.dev_msg = dev_msg
+
+    def __repr__(self):
+        return repr(self.dev_msg)
+
+    def __str__(self):
+        return str(self.usr_msg)
+
+
+class BadBackendError(ApiError):
+    """
+    Unavailable backend error.
+    """
+    def __init__(self, backend):
+        """
+        Parameters
+        ----------
+        backend : str
+           Name of backend.
+        """
+        usr_msg = ('Could not find backend "{0}" available.').format(backend)
+        dev_msg = ('Backend "{0}" does not exist. Please use '
+                   'available_backends to see options').format(backend)
+        ApiError.__init__(self, usr_msg=usr_msg,
+                          dev_msg=dev_msg)
+
+class CredentialsError(ApiError):
+    """Errors associated with bad server credentials."""
+    pass
