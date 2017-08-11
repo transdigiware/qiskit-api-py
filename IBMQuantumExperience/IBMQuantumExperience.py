@@ -293,6 +293,10 @@ class IBMQuantumExperience(object):
                 result["extraInfo"] = ad_aux
             if "calibration" in execution:
                 result["calibration"] = execution["calibration"]
+            if execution["result"]["data"].get('cregLabels', None):
+                result["creg_labels"] = execution["result"]["data"]["cregLabels"]
+            if execution["result"]["data"].get('time', None):
+                result["time_taken"] = execution["result"]["data"]["time"]
 
         return result
 
