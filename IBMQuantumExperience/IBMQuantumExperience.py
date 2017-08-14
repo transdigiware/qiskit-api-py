@@ -151,7 +151,7 @@ class _Request(object):
         """
         if respond.status_code == 400:
             self.log.warning("Got a 400 code response to %s: %s", respond.url,
-                             respond.json())
+                             respond.text)
             return False
         try:
             self.result = respond.json()
@@ -293,6 +293,10 @@ class IBMQuantumExperience(object):
                 result["extraInfo"] = ad_aux
             if "calibration" in execution:
                 result["calibration"] = execution["calibration"]
+            if execution["result"]["data"].get('cregLabels', None):
+                result["creg_labels"] = execution["result"]["data"]["cregLabels"]
+            if execution["result"]["data"].get('time', None):
+                result["time_taken"] = execution["result"]["data"]["time"]
 
         return result
 

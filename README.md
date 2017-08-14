@@ -1,4 +1,4 @@
-# Python API Client IBM Quantum Experience [![Build Status](https://travis-ci.org/IBM/qiskit-api-py.svg?branch=master)](https://travis-ci.org/IBM/qiskit-api-py)
+# Python API Client IBM Quantum Experience [![Build Status](https://travis-ci.org/QISKit/qiskit-api-py.svg?branch=master)](https://travis-ci.org/QISKit/qiskit-api-py)
 
 The official API Client to use [IBM Quantum Experience](https://quantumexperience.ng.bluemix.net/) in Python.
 
@@ -103,9 +103,9 @@ To get only the Result about a specific Execution of a Code, you only need the e
 api.get_result_from_execution("id_execution")
 ```
 
-#### Running [QASM 2.0](https://github.com/IBM/qiskit-openqasm)
+#### Running [QASM 2.0](https://github.com/QISKit/qiskit-openqasm)
 
-To execute a [QASM 2.0](https://github.com/IBM/qiskit-openqasm) experiment:
+To execute a [QASM 2.0](https://github.com/QISKit/qiskit-openqasm) experiment:
 
 ```python
 api.run_experiment(qasm, device, shots, name=None, timeout=60)
@@ -122,9 +122,9 @@ api.run_experiment(qasm, device, shots, name=None, timeout=60)
 - **timeout**: Time to wait for the result. The maximum timeout is 300. If the timeout is reached, you obtain the executionId to get the result with the getResultFromExecution method in the future. Eg:
 ```timeout = 120```
 
-#### Running Jobs [QASM 2.0](https://github.com/IBM/qiskit-openqasm)
+#### Running Jobs [QASM 2.0](https://github.com/QISKit/qiskit-openqasm)
 
-To execute jobs about [QASM 2.0](https://github.com/IBM/qiskit-openqasm) experiments:
+To execute jobs about [QASM 2.0](https://github.com/QISKit/qiskit-openqasm) experiments:
 
 ```python
 api.run_job(qasms, backend, shots, max_credits)
@@ -289,4 +289,4 @@ You can run the tests under ```test``` folder. See the test/README file to more 
 
 [IBM Quantun Experience Community](https://quantumexperience.ng.bluemix.net/qstage/#/community)
 
-[OPENQASM](https://github.com/IBM/qiskit-openqasm)
+[OPENQASM](https://github.com/QISKit/qiskit-openqasm)
