@@ -25,7 +25,7 @@ def install(package):
 install('IBMQuantumExperience')
 ```
 
-or, if you want the standard output, one could even use the exclamation bang:
+or, if you want the standard output, one could even use the exclamation point:
 
 ```python
 ! pip install IBMQuantumExperience
