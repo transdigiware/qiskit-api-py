@@ -41,10 +41,17 @@ First, import our API Client:
 from IBMQuantumExperience.IBMQuantumExperience import IBMQuantumExperience
 ```
 
-Then, initialize your IBM Quantum Experience connection by supplying your *token*. You can obtain the token from *[My Account](https://quantumexperience.ng.bluemix.net/qx/account)* area of *Quantum Experience Platform* in *Personal Access Token* section. The constructor has an attribute called *verify* to ignore or not SSL certificate errors, and an optional object knows as *config* has several extra options to customize, like the url of the API:
+Then, initialize your IBM Quantum Experience connection by supplying your *token*. You can obtain the token from *[My Account](https://quantumexperience.ng.bluemix.net/qx/account)* area of *Quantum Experience Platform* in *Personal Access Token* section.
 
 ```python
-api = IBMQuantumExperience("token", config, verify)
+api = IBMQuantumExperience("543...9df")
+```
+
+The constructor takes also other optional arguments. The dictionary *config* allows with extra options to customize the connection (like the url of the API).
+The boolean *verify* checks for SSL certificate errors:
+
+```python
+api = IBMQuantumExperience("543...9df", config = {"url":"https://...", verify=False)
 ```
 
 By default, the config parameter is defined like:
@@ -55,7 +62,7 @@ config = {
 }
 ```
 
-If verify is set to false, ignore SSL certificate errors
+If *verify* is set to `False`, ignore SSL certificate errors:
 
 ```
 verify = True
