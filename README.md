@@ -38,11 +38,7 @@ Now it's time to begin doing real work with Python and IBM Quantum Experience.
 First, import our API Client:
 
 ```python
-import sys
-if sys.version_info.major > 2:  # Python 3
-    from IBMQuantumExperience.IBMQuantumExperience import IBMQuantumExperience
-else:                           # Python 2 
-    from IBMQuantumExperience import IBMQuantumExperience
+from IBMQuantumExperience import IBMQuantumExperience
 ```
 
 Then, initialize your IBM Quantum Experience connection by supplying your *token*. You can obtain the token from **Account** area of *Quantum Experience Platform* in *Personal Access Token* section. The constructor has an attribute called *verify* to ignore or not SSL certificate errors, and an optional object knows as *config* has several extra options to customize, like the url of the API:
