@@ -43,9 +43,11 @@ measure q -> c;
 
 include "qelib1.inc";
 qreg q[5];
-creg c[5];
+creg c[3];
+creg f[2];
 x q[0];
-measure q -> c;
+measure q[0] -> c[0];
+measure q[2] -> f[0];
 """}]
 
     def tearDown(self):
