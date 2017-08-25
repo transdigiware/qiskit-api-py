@@ -1,14 +1,17 @@
 """
     IBM Quantum Experience Python API Client
 """
-import json
+try:
+    import simplejson as json
+except ImportError:
+    import json
 import time
 import logging
 from datetime import datetime
 import sys
 import traceback
 import requests
-
+import re
 
 class _Credentials(object):
     """
@@ -79,6 +82,9 @@ class _Request(object):
         self.retries = retries
         self.timeout_interval = timeout_interval
         self.result = None
+        self._max_qubit_error_re = re.compile(
+            r".*registers exceed the number of qubits, "
+            r"it can\\'t be greater than (\d+).*")
 
     def check_token(self, respond):
         """
@@ -149,46 +155,25 @@ class _Request(object):
         Raises:
             ApiError: response isn't formatted properly.
         """
-        if respond.status_code == 400:
-            self.log.warning("Got a 400 code response to %s: %s", respond.url,
-                             respond.text)
-            return False
+        if respond.status_code != requests.codes.ok:
+            self.log.warning('Got a {} code response to {}: {}'.format(
+                respond.status_code,
+                respond.url,
+                respond.text))
+            return self._parse_response(respond)
         try:
             self.result = respond.json()
-        except Exception:
-            usr_msg = ('JSON conversion failed: url: {0}, status: {1},'
-                       'reason: {2}, text: {3}')
-            exc_type, exc_value, exc_traceback = None, None, None
-            try:
-                exc_type, exc_value, exc_traceback = sys.exc_info()
-            except:
-                raise
-            else:
-                err_list = traceback.format_exception(exc_type, exc_value,
-                                                      exc_traceback)
-                err_list = err_list[-2:]
-                module_info = err_list[0].split(',')
-                module_name = module_info[0].split('/')[-1].rstrip('"').split('.')[0]
-                module_line = module_info[1].lstrip()
-                dev_msg = '{0} {1} {2}'.format(module_name, module_line,
-                                               err_list[1])
-            finally:
-                # may not be necessary in python3 but should be safe and maybe
-                # avoid need to garbage collect cycle?
-                del exc_type, exc_value, exc_traceback
-
+        except (json.JSONDecodeError, ValueError):
+            usr_msg = 'device server returned unexpected http response'
+            dev_msg = usr_msg + ': ' + respond.text
+            raise ApiError(usr_msg=usr_msg, dev_msg=dev_msg)
+        if not isinstance(self.result, (list, dict)):
+            msg = ('JSON not a list or dict: url: {0},'
+                   'status: {1}, reason: {2}, text: {3}')
             raise ApiError(
-                usr_msg=usr_msg.format(respond.url, respond.status_code,
-                                       respond.reason, respond.text),
-                dev_msg=dev_msg)
-        else:
-            if not isinstance(self.result, (list, dict)):
-                msg = ('JSON not a list or dict: url: {0},'
-                       'status: {1}, reason: {2}, text: {3}')
-                raise ApiError(
-                    usr_msg=msg.format(respond.url,
-                                       respond.status_code,
-                                       respond.reason, respond.text))
+                usr_msg=msg.format(respond.url,
+                                   respond.status_code,
+                                   respond.reason, respond.text))
         if ('error' not in self.result or
                 ('status' not in self.result['error'] or
                  self.result['error']['status'] != 400)):
@@ -197,6 +182,29 @@ class _Request(object):
             self.log.warning("Got a 400 code JSON response to %s", respond.url)
             return False
 
+    def _parse_response(self, respond):
+        """parse text of response for HTTP errors
+
+        This parses the text of the response to decide whether to
+        retry request or raise exception. At the moment this only
+        detects an exception condition.
+
+        Args:
+            respond (Response): requests.Response object
+
+        Returns:
+            bool: False if the request should be retried, True
+                if not.
+
+        Raises:
+            RegisterSizeError
+        """
+        # convert error messages into exceptions
+        mobj = self._max_qubit_error_re.match(respond.text)
+        if mobj:
+            raise RegisterSizeError(
+                'device register size must be <= {}'.format(mobj[1]))
+        return True
 
 class IBMQuantumExperience(object):
     """
@@ -209,7 +217,7 @@ class IBMQuantumExperience(object):
 
     def __init__(self, token, config=None, verify=True):
         """ If verify is set to false, ignore SSL certificate errors """
-        self.req = _Request(token, config, verify)
+        self.req = _Request(token, config=config, verify=verify)
 
     def _check_backend(self, backend, endpoint):
         """
@@ -436,7 +444,6 @@ class IBMQuantumExperience(object):
             return {"error": "Not seed allowed. Max 10 digits."}
 
         data['backend']['name'] = backend_type
-
         job = self.req.post('/Jobs', data=json.dumps(data))
         return job
 
@@ -585,8 +592,7 @@ class ApiError(Exception):
     def __init__(self, usr_msg=None, dev_msg=None):
         """
         Args:
-            usr_msg (str or None, optional): Short user facing message
-                describing error.
+            usr_msg (str): Short user facing message describing error.
             dev_msg (str or None, optional): More detailed message to assist
                 developer with resolving issue.
         """
@@ -619,5 +625,9 @@ class BadBackendError(ApiError):
                           dev_msg=dev_msg)
 
 class CredentialsError(ApiError):
-    """Errors associated with bad server credentials."""
+    """Exception associated with bad server credentials."""
+    pass
+
+class RegisterSizeError(ApiError):
+    """Exception due to exceeding the maximum number of allowed qubits."""
     pass
