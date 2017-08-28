@@ -16,6 +16,7 @@ else:  # Python 2
     from IBMQuantumExperience import IBMQuantumExperience  # noqa
 from IBMQuantumExperience.IBMQuantumExperience import ApiError
 from IBMQuantumExperience.IBMQuantumExperience import BadBackendError  # noq
+from IBMQuantumExperience.IBMQuantumExperience import RegisterSizeError
 
 
 class TestQX(unittest.TestCase):
@@ -24,6 +25,7 @@ class TestQX(unittest.TestCase):
     '''
 
     def setUp(self):
+        self.api = IBMQuantumExperience(API_TOKEN)
         self.qasm = """IBMQASM 2.0;
 
 include "qelib1.inc";
@@ -59,16 +61,14 @@ measure q -> c;
         '''
         Authentication with Quantum Experience Platform
         '''
-        api = IBMQuantumExperience(API_TOKEN)
-        credential = api.check_credentials()
+        credential = self.api.check_credentials()
         self.assertTrue(credential)
 
     def test_api_get_my_credits(self):
         '''
         Check the credits of the user
         '''
-        api = IBMQuantumExperience(API_TOKEN)
-        my_credits = api.get_my_credits()
+        my_credits = self.api.get_my_credits()
         check_credits = None
         if 'remaining' in my_credits:
             check_credits = my_credits['remaining']
@@ -85,17 +85,15 @@ measure q -> c;
         '''
         Check last code by user authenticated
         '''
-        api = IBMQuantumExperience(API_TOKEN)
-        self.assertIsNotNone(api.get_last_codes())
+        self.assertIsNotNone(self.api.get_last_codes())
 
     def test_api_run_experiment(self):
         '''
         Check run an experiment by user authenticated
         '''
-        api = IBMQuantumExperience(API_TOKEN)
-        backend = api.available_backend_simulators()[0]['name']
+        backend = self.api.available_backend_simulators()[0]['name']
         shots = 1
-        experiment = api.run_experiment(self.qasm, backend, shots)
+        experiment = self.api.run_experiment(self.qasm, backend, shots)
         check_status = None
         if 'status' in experiment:
             check_status = experiment['status']
@@ -105,11 +103,11 @@ measure q -> c;
         '''
         Check run an experiment with seed by user authenticated
         '''
-        api = IBMQuantumExperience(API_TOKEN)
-        backend = api.available_backend_simulators()[0]['name']
+        backend = self.api.available_backend_simulators()[0]['name']
         shots = 1
         seed = 815
-        experiment = api.run_experiment(self.qasm, backend, shots, seed=seed)
+        experiment = self.api.run_experiment(self.qasm, backend, shots,
+                                             seed=seed)
         check_seed = -1
         if ('result' in experiment) and \
            ('extraInfo' in experiment['result']) and \
@@ -122,20 +120,18 @@ measure q -> c;
         Check run an experiment by user authenticated is not run because the
         backend does not exist
         '''
-        api = IBMQuantumExperience(API_TOKEN)
         backend = '5qreal'
         shots = 1
         self.assertRaises(BadBackendError,
-                          api.run_experiment, self.qasm, backend, shots)
+                          self.api.run_experiment, self.qasm, backend, shots)
 
     def test_api_run_job(self):
         '''
         Check run an job by user authenticated
         '''
-        api = IBMQuantumExperience(API_TOKEN)
         backend = 'simulator'
         shots = 1
-        job = api.run_job(self.qasms, backend, shots)
+        job = self.api.run_job(self.qasms, backend, shots)
         check_status = None
         if 'status' in job:
             check_status = job['status']
@@ -146,60 +142,73 @@ measure q -> c;
         Check run an job by user authenticated is not run because the backend
         does not exist
         '''
-        api = IBMQuantumExperience(API_TOKEN)
         backend = 'real5'
         shots = 1
-        self.assertRaises(BadBackendError, api.run_job, self.qasms, backend,
-                          shots)
+        self.assertRaises(BadBackendError, self.api.run_job, self.qasms,
+                          backend, shots)
 
     def test_api_get_jobs(self):
         '''
         Check get jobs by user authenticated
         '''
-        api = IBMQuantumExperience(API_TOKEN)
-        jobs = api.get_jobs(2)
+        jobs = self.api.get_jobs(2)
         self.assertEqual(len(jobs), 2)
 
     def test_api_backend_status(self):
         '''
         Check the status of a real chip
         '''
-        api = IBMQuantumExperience(API_TOKEN)
-        is_available = api.backend_status()
+        is_available = self.api.backend_status()
         self.assertIsNotNone(is_available['available'])
 
     def test_api_backend_calibration(self):
         '''
         Check the calibration of a real chip
         '''
-        api = IBMQuantumExperience(API_TOKEN)
-        calibration = api.backend_calibration()
+        calibration = self.api.backend_calibration()
         self.assertIsNotNone(calibration)
 
     def test_api_backend_parameters(self):
         '''
         Check the parameters of calibration of a real chip
         '''
-        api = IBMQuantumExperience(API_TOKEN)
-        parameters = api.backend_parameters()
+        parameters = self.api.backend_parameters()
         self.assertIsNotNone(parameters)
 
     def test_api_backends_availables(self):
         '''
         Check the backends availables
         '''
-        api = IBMQuantumExperience(API_TOKEN)
-        backends = api.available_backends()
+        backends = self.api.available_backends()
         self.assertGreaterEqual(len(backends), 2)
 
     def test_api_backend_simulators_available(self):
         '''
         Check the backend simulators available
         '''
-        api = IBMQuantumExperience(API_TOKEN)
-        backends = api.available_backend_simulators()
+        backends = self.api.available_backend_simulators()
         self.assertGreaterEqual(len(backends), 1)
 
+    def test_register_size_limit_exception(self):
+        '''
+        Check that exceeding register size limit generates exception
+        '''
+        backend = 'simulator'
+        shots = 1
+        qasm = """OPENQASM 2.0;
+include "qelib1.inc";
+qreg q[25];
+creg c[25];
+h q[0];
+h q[24];
+measure q[0] -> c[0];
+measure q[24] -> c[24];
+        """
+        self.assertRaises(RegisterSizeError, self.api.run_job,
+                          [{'qasm': qasm}],
+                          backend=backend, shots=shots)
+        
+        
 if __name__ == '__main__':
     suite = unittest.TestLoader().loadTestsFromTestCase(TestQX)
     unittest.TextTestRunner(verbosity=2).run(suite)
