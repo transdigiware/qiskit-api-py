@@ -84,7 +84,7 @@ class _Request(object):
         self.result = None
         self._max_qubit_error_re = re.compile(
             r".*registers exceed the number of qubits, "
-            r"it can\\'t be greater than (\d+).*")
+            r"it can\'t be greater than (\d+).*")
 
     def check_token(self, respond):
         """
