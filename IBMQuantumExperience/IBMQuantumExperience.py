@@ -13,6 +13,7 @@ import traceback
 import requests
 import re
 
+
 class _Credentials(object):
     """
     The Credential class to manage the tokens
@@ -203,8 +204,9 @@ class _Request(object):
         mobj = self._max_qubit_error_re.match(respond.text)
         if mobj:
             raise RegisterSizeError(
-                'device register size must be <= {}'.format(mobj[1]))
+                'device register size must be <= {}'.format(mobj.group(1)))
         return True
+
 
 class IBMQuantumExperience(object):
     """
@@ -585,6 +587,7 @@ class IBMQuantumExperience(object):
                 return user_data["credit"]
             return {}
 
+
 class ApiError(Exception):
     """
     IBMQuantumExperience API error handling base class.
@@ -624,9 +627,11 @@ class BadBackendError(ApiError):
         ApiError.__init__(self, usr_msg=usr_msg,
                           dev_msg=dev_msg)
 
+
 class CredentialsError(ApiError):
     """Exception associated with bad server credentials."""
     pass
+
 
 class RegisterSizeError(ApiError):
     """Exception due to exceeding the maximum number of allowed qubits."""

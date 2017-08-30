@@ -14,9 +14,9 @@ if sys.version_info.major > 2:  # Python 3
     from IBMQuantumExperience.IBMQuantumExperience import IBMQuantumExperience  # noqa
 else:  # Python 2
     from IBMQuantumExperience import IBMQuantumExperience  # noqa
-from IBMQuantumExperience.IBMQuantumExperience import ApiError
-from IBMQuantumExperience.IBMQuantumExperience import BadBackendError  # noq
-from IBMQuantumExperience.IBMQuantumExperience import RegisterSizeError
+from IBMQuantumExperience.IBMQuantumExperience import ApiError  # noqa
+from IBMQuantumExperience.IBMQuantumExperience import BadBackendError  # noqa
+from IBMQuantumExperience.IBMQuantumExperience import RegisterSizeError  # noqa
 
 
 class TestQX(unittest.TestCase):
@@ -57,7 +57,7 @@ measure q[2] -> f[0];
 
     # ---------------------------------
     #        TESTS
-    #----------------------------------
+    # ----------------------------------
 
     def test_api_auth_token(self):
         '''
@@ -208,7 +208,7 @@ measure q[24] -> c[24];
         """
         self.assertRaises(RegisterSizeError, self.api.run_job,
                           [{'qasm': qasm}],
-                          backend=backend, shots=shots)
+                          backend, shots)
         
         
 if __name__ == '__main__':
