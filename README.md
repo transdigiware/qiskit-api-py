@@ -38,7 +38,7 @@ Now it's time to begin doing real work with Python and IBM Quantum Experience.
 First, import our API Client:
 
 ```python
-from IBMQuantumExperience.IBMQuantumExperience import IBMQuantumExperience
+from IBMQuantumExperience import IBMQuantumExperience
 ```
 
 Then, initialize your IBM Quantum Experience connection by supplying your *token*. You can obtain the token from *[My Account](https://quantumexperience.ng.bluemix.net/qx/account)* area of *Quantum Experience Platform* in *Personal Access Token* section.
