@@ -9,10 +9,11 @@ import unittest
 from config import API_TOKEN
 sys.path.append('IBMQuantumExperience')
 sys.path.append('../IBMQuantumExperience')
+
 from IBMQuantumExperience import IBMQuantumExperience  # noqa
-from IBMQuantumExperience.IBMQuantumExperience import ApiError  # noqa
-from IBMQuantumExperience.IBMQuantumExperience import BadBackendError  # noqa
-from IBMQuantumExperience.IBMQuantumExperience import RegisterSizeError  # noqa
+from IBMQuantumExperience import ApiError
+from IBMQuantumExperience import BadBackendError
+from IBMQuantumExperience import RegisterSizeError
 
 
 class TestQX(unittest.TestCase):
@@ -205,8 +206,8 @@ measure q[24] -> c[24];
         self.assertRaises(RegisterSizeError, self.api.run_job,
                           [{'qasm': qasm}],
                           backend, shots)
-        
-        
+
+
 if __name__ == '__main__':
     suite = unittest.TestLoader().loadTestsFromTestCase(TestQX)
     unittest.TextTestRunner(verbosity=2).run(suite)
