@@ -51,7 +51,7 @@ The constructor takes also other optional arguments. The dictionary *config* all
 The boolean *verify* checks for SSL certificate errors:
 
 ```python
-api = IBMQuantumExperience("543...9df", config = {"url":"https://...", verify=False)
+api = IBMQuantumExperience("543...9df", config = {"url":"https://..."}, verify=False)
 ```
 
 By default, the config parameter is defined like:
@@ -61,6 +61,9 @@ config = {
    "url": 'https://quantumexperience.ng.bluemix.net/api'
 }
 ```
+
+But the config parameter can be store the *access_token* and the *user_id* to avoid login with API Token if you know this values.
+Also all methods can be receives the *access_token* and the *user_id*.
 
 If *verify* is set to `False`, ignore SSL certificate errors:
 

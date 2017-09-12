@@ -11,9 +11,9 @@ sys.path.append('IBMQuantumExperience')
 sys.path.append('../IBMQuantumExperience')
 
 from IBMQuantumExperience import IBMQuantumExperience  # noqa
-from IBMQuantumExperience import ApiError
-from IBMQuantumExperience import BadBackendError
-from IBMQuantumExperience import RegisterSizeError
+from IBMQuantumExperience import ApiError  # noqa
+from IBMQuantumExperience import BadBackendError  # noqa
+from IBMQuantumExperience import RegisterSizeError  # noqa
 
 
 class TestQX(unittest.TestCase):

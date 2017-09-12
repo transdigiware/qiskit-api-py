@@ -35,6 +35,13 @@ class _Credentials(object):
         self.data_credentials = {}
         if token:
             self.obtain_token()
+        else:
+            access_token = self.config.get('access_token', None)
+            user_id = self.config.get('user_id', None)
+            if access_token:
+                self.set_token(access_token)
+            if user_id:
+                self.set_user_id(user_id)           
 
     def obtain_token(self):
         """Obtain the token to access to QX Platform.
@@ -42,11 +49,14 @@ class _Credentials(object):
         Raises:
             CredentialsError: when token is invalid.
         """
-        self.data_credentials = requests.post(str(self.config.get('url') +
+        if self.token_unique:
+            self.data_credentials = requests.post(str(self.config.get('url') +
                                                   "/users/loginWithToken"),
-                                              data={'apiToken':
-                                                    self.token_unique},
-                                              verify=self.verify).json()
+                                                  data={'apiToken':
+                                                        self.token_unique},
+                                                  verify=self.verify).json()
+        else:
+            raise CredentialsError('invalid token')
 
         if self.get_token() is None:
             raise CredentialsError('invalid token')
