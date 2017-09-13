@@ -13,6 +13,8 @@ import traceback
 import requests
 import re
 
+CLIENT_APPLICATION = 'qiskit-api-py'
+
 
 class _Credentials(object):
     """
@@ -50,11 +52,16 @@ class _Credentials(object):
             CredentialsError: when token is invalid.
         """
         if self.token_unique:
+            client_application = CLIENT_APPLICATION
+            if self.config and ("client_application" in self.config):
+                client_application += ':' + self.config["client_application"]
+            headers = {'x-qx-client-application': client_application}
             self.data_credentials = requests.post(str(self.config.get('url') +
                                                   "/users/loginWithToken"),
                                                   data={'apiToken':
                                                         self.token_unique},
-                                                  verify=self.verify).json()
+                                                  verify=self.verify,
+                                                  headers=headers).json()
         else:
             raise CredentialsError('invalid token')
 
@@ -99,6 +106,9 @@ class _Request(object):
     def __init__(self, token, config=None, verify=True, retries=5,
                  timeout_interval=1.0):
         self.verify = verify
+        self.client_application = CLIENT_APPLICATION
+        if config and ("client_application" in config):
+            self.client_application += ':' + config["client_application"]
         self.credential = _Credentials(token, config, verify)
         self.log = logging.getLogger(__name__)
         if not isinstance(retries, int):
@@ -124,7 +134,8 @@ class _Request(object):
         POST Method Wrapper of the REST API
         """
         data = data or {}
-        headers = {'Content-Type': 'application/json'}
+        headers = {'Content-Type': 'application/json',
+                   'x-qx-client-application': self.client_application}
         url = str(self.credential.config['url'] + path + '?access_token=' +
                   self.credential.get_token() + params)
         retries = self.retries
@@ -154,10 +165,12 @@ class _Request(object):
                 access_token = '?access_token=' + str(access_token)
         url = self.credential.config['url'] + path + access_token + params
         retries = self.retries
-        while retries > 0: # Repeat until no error
-            respond = requests.get(url, verify=self.verify)
+        headers = {'x-qx-client-application': self.client_application}
+        while retries > 0:  # Repeat until no error
+            respond = requests.get(url, verify=self.verify, headers=headers)
             if not self.check_token(respond):
-                respond = requests.get(url, verify=self.verify)
+                respond = requests.get(url, verify=self.verify,
+                                       headers=headers)
             if self._response_good(respond):
                 return self.result
             else:
