@@ -63,7 +63,7 @@ config = {
 ```
 
 But the config parameter can be store the *access_token* and the *user_id* to avoid login with API Token if you know this values.
-Also all methods can be receives the *access_token* and the *user_id*.
+Also all methods can be receives the *access_token* and the *user_id*. Also you can set the *client_application* to know what client is using the QX Platform. By Default the client is set to the this general api python.
 
 If *verify* is set to `False`, ignore SSL certificate errors:
 
