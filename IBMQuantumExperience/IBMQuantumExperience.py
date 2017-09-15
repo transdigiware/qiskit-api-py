@@ -596,6 +596,8 @@ class IBMQuantumExperience(object):
             ret['available'] = bool(status['state'])
         if 'busy' in status:
             ret['busy'] = bool(status['busy'])
+        if 'lengthQueue' in status:
+            ret['pending_jobs'] = status['lengthQueue']
 
         return ret
 
