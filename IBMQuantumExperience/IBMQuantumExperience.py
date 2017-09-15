@@ -13,6 +13,7 @@ import traceback
 import requests
 import re
 
+logging.basicConfig()
 CLIENT_APPLICATION = 'qiskit-api-py'
 
 
