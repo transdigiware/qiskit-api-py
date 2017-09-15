@@ -25,41 +25,57 @@ class _Credentials(object):
     def __init__(self, token, config=None, verify=True):
         self.token_unique = token
         self.verify = verify
+        self.config = config
         if not verify:
             import requests.packages.urllib3 as urllib3
             urllib3.disable_warnings()
             print('-- Ignoring SSL errors.  This is not recommended --')
-        if config and config.get('url', None):
-            self.config = config
+        if self.config and ("url" not in self.config):
+            self.config["url"] = self.config_base["url"]
         else:
             self.config = self.config_base
 
         self.data_credentials = {}
         if token:
-            self.obtain_token()
+            self.obtain_token(config=self.config)
         else:
             access_token = self.config.get('access_token', None)
-            user_id = self.config.get('user_id', None)
             if access_token:
-                self.set_token(access_token)
-            if user_id:
-                self.set_user_id(user_id)           
+                user_id = self.config.get('user_id', None)
+                if access_token:
+                    self.set_token(access_token)
+                if user_id:
+                    self.set_user_id(user_id)
+            else:
+                self.obtain_token(config=self.config)
 
-    def obtain_token(self):
+    def obtain_token(self, config=None):
         """Obtain the token to access to QX Platform.
 
         Raises:
             CredentialsError: when token is invalid.
         """
+        client_application = CLIENT_APPLICATION
+        if self.config and ("client_application" in self.config):
+            client_application += ':' + self.config["client_application"]
+        headers = {'x-qx-client-application': client_application}
         if self.token_unique:
-            client_application = CLIENT_APPLICATION
-            if self.config and ("client_application" in self.config):
-                client_application += ':' + self.config["client_application"]
-            headers = {'x-qx-client-application': client_application}
             self.data_credentials = requests.post(str(self.config.get('url') +
                                                   "/users/loginWithToken"),
                                                   data={'apiToken':
                                                         self.token_unique},
+                                                  verify=self.verify,
+                                                  headers=headers).json()
+        elif config and ("email" in config) and ("password" in config):
+            email = config.get('email', None)
+            password = config.get('password', None)
+            credentials = {
+                'email': email,
+                'password': password
+            }
+            self.data_credentials = requests.post(str(self.config.get('url') +
+                                                  "/users/login"),
+                                                  data=credentials,
                                                   verify=self.verify,
                                                   headers=headers).json()
         else:
@@ -107,9 +123,10 @@ class _Request(object):
                  timeout_interval=1.0):
         self.verify = verify
         self.client_application = CLIENT_APPLICATION
-        if config and ("client_application" in config):
-            self.client_application += ':' + config["client_application"]
-        self.credential = _Credentials(token, config, verify)
+        self.config = config
+        if self.config and ("client_application" in self.config):
+            self.client_application += ':' + self.config["client_application"]
+        self.credential = _Credentials(token, self.config, verify)
         self.log = logging.getLogger(__name__)
         if not isinstance(retries, int):
             raise TypeError('post retries must be positive integer')
@@ -125,7 +142,7 @@ class _Request(object):
         Check is the user's token is valid
         """
         if respond.status_code == 401:
-            self.credential.obtain_token()
+            self.credential.obtain_token(config=self.config)
             return False
         return True
 
