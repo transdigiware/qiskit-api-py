@@ -33,7 +33,7 @@ class _Credentials(object):
             print('-- Ignoring SSL errors.  This is not recommended --')
         if self.config and ("url" not in self.config):
             self.config["url"] = self.config_base["url"]
-        else:
+        elif not self.config:
             self.config = self.config_base
 
         self.data_credentials = {}
@@ -162,6 +162,31 @@ class _Request(object):
                                     verify=self.verify)
             if not self.check_token(respond):
                 respond = requests.post(url, data=data, headers=headers,
+                                        verify=self.verify)
+            if self._response_good(respond):
+                return self.result
+            else:
+                retries -= 1
+                time.sleep(self.timeout_interval)
+        # timed out
+        raise ApiError(usr_msg='Failed to get proper ' +
+                       'response from backend.')
+
+    def put(self, path, params='', data=None):
+        """
+        PUT Method Wrapper of the REST API
+        """
+        data = data or {}
+        headers = {'Content-Type': 'application/json',
+                   'x-qx-client-application': self.client_application}
+        url = str(self.credential.config['url'] + path + '?access_token=' +
+                  self.credential.get_token() + params)
+        retries = self.retries
+        while retries > 0:
+            respond = requests.put(url, data=data, headers=headers,
+                                    verify=self.verify)
+            if not self.check_token(respond):
+                respond = requests.put(url, data=data, headers=headers,
                                         verify=self.verify)
             if self._response_good(respond):
                 return self.result
@@ -702,6 +727,74 @@ class IBMQuantumExperience(object):
                     del user_data["credit"]["lastRefill"]
                 return user_data["credit"]
             return {}
+
+    # Admins Methods
+    '''
+    Methods to run by admins, to manage users
+    '''
+
+    def create_user(self, name, email, password, institution,
+                    access_token=None, user_id=None):
+        """
+        Create a user by admin
+        """
+        if access_token:
+            self.req.credential.set_token(access_token)
+        if user_id:
+            self.req.credential.set_user_id(user_id)
+        if not self.check_credentials():
+            return {"error": "Not credentials valid"}
+
+        data = {
+                'firstName': name,
+                'email': email,
+                'password': password,
+                'institution': institution
+               }
+
+        user = self.req.post('/users/createByAdmin', data=json.dumps(data))
+        return user
+
+    def get_user_groups(self, access_token=None, user_id=None):
+        """
+        Get user groups to asign to users
+        """
+        if access_token:
+            self.req.credential.set_token(access_token)
+        if user_id:
+            self.req.credential.set_user_id(user_id)
+        if not self.check_credentials():
+            return {"error": "Not credentials valid"}
+
+        user_groups = self.req.get('/UserGroups')
+        return user_groups
+
+    def set_user_group(self, id_user, name_user_group,
+                       access_token=None, user_id=None):
+        """
+        Set user group to User
+        """
+        if access_token:
+            self.req.credential.set_token(access_token)
+        if user_id:
+            self.req.credential.set_user_id(user_id)
+        if not self.check_credentials():
+            return {"error": "Not credentials valid"}
+
+        id_user_group = None
+        user_groups = self.get_user_groups(access_token, user_id)
+        for group in user_groups:
+            if group['name'].lower() == name_user_group.lower():
+                id_user_group = group['id']
+                break
+
+        if id_user_group:
+            user = self.req.put('/users/' + str(id_user) +
+                                '/groups/rel/' + str(id_user_group))
+            return user
+        else:
+            raise ApiError(usr_msg='User group doesnt exist ' +
+                           name_user_group)
 
 
 class ApiError(Exception):
