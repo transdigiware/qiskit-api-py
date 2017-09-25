@@ -623,6 +623,8 @@ class IBMQuantumExperience(object):
             ret['busy'] = bool(status['busy'])
         if 'lengthQueue' in status:
             ret['pending_jobs'] = status['lengthQueue']
+        
+        ret['backend'] = backend_type
 
         return ret
 
