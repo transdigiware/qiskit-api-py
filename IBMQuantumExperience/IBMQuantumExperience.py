@@ -370,7 +370,7 @@ class IBMQuantumExperience(object):
 
     def get_result_from_execution(self, id_execution, access_token=None, user_id=None):
         """
-        Get the result of a execution, byt the execution id
+        Get the result of a execution, by the execution id
         """
         if access_token:
             self.req.credential.set_token(access_token)
