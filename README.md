@@ -119,7 +119,7 @@ api.run_experiment(qasm, device, shots, name=None, timeout=60)
 
 - **qasm**: The QASM 2.0 code to run. Eg: 
 ```qasm = 'OPENQASM 2.0;\n\ninclude "qelib1.inc";\nqreg q[5];\ncreg c[5];\nh q[0];\ncx q[0],q[2];\nmeasure q[0] -> c[0];\nmeasure q[2] -> c[1];\n'```
-- **backend**: Type of backend to run the experiment. Only two option possibles: *simulator* or *ibmqx2*, that is the real chip of 5 qubits. Eg:
+- **backend**: Type of backend to run the experiment. Options: *simulator*, *ibmqx2* or *ibmqx4*, those are the real chips of 5 qubits. Eg:
 ```device = 'ibmqx2' ```
 - **shots**: Number of shots of the experiments. Maximum 8192 shots. Eg:
 ```shots = 1024 ```
@@ -143,7 +143,7 @@ api.run_job(qasms, backend, shots, max_credits)
    { 'qasm': 'OPENQASM 2.0;\n\ninclude "qelib1.inc";\nqreg q[5];\ncreg c[5];\nx q[0];\nmeasure q[0] -> c[0];\n'}
 ]
 ```
-- **backend**: Type of backend to run the experiment. Only two option possibles: *simulator* or *ibmqx2*, that is the real chip of 5 qubits. Eg:
+- **backend**: Type of backend to run the experiment. Options: *simulator*, *ibmqx2*, *ibmqx3* (16 qubits) or *ibmqx4*. Eg:
 ```device = 'ibmqx2' ```
 - **shots**: Number of shots of the experiments. Maximum 8192 shots. Eg:
 ```shots = 1024 ```
