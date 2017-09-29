@@ -614,7 +614,7 @@ class IBMQuantumExperience(object):
         jobs = self.req.get('/Jobs', '&filter={"limit":' + str(limit) + '}')
         return jobs
 
-    def backend_status(self, backend='ibmqx2', access_token=None, user_id=None):
+    def backend_status(self, backend='ibmqx4', access_token=None, user_id=None):
         """
         Get the status of a chip
         """
@@ -641,7 +641,7 @@ class IBMQuantumExperience(object):
 
         return ret
 
-    def backend_calibration(self, backend='ibmqx2', access_token=None, user_id=None):
+    def backend_calibration(self, backend='ibmqx4', access_token=None, user_id=None):
         """
         Get the calibration of a real chip
         """
@@ -667,7 +667,7 @@ class IBMQuantumExperience(object):
         ret["backend"] = backend_type
         return ret
 
-    def backend_parameters(self, backend='ibmqx2', access_token=None, user_id=None):
+    def backend_parameters(self, backend='ibmqx4', access_token=None, user_id=None):
         """
         Get the parameters of calibration of a real chip
         """

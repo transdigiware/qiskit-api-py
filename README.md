@@ -119,8 +119,8 @@ api.run_experiment(qasm, device, shots, name=None, timeout=60)
 
 - **qasm**: The QASM 2.0 code to run. Eg: 
 ```qasm = 'OPENQASM 2.0;\n\ninclude "qelib1.inc";\nqreg q[5];\ncreg c[5];\nh q[0];\ncx q[0],q[2];\nmeasure q[0] -> c[0];\nmeasure q[2] -> c[1];\n'```
-- **backend**: Type of backend to run the experiment. Options: *simulator*, *ibmqx2* or *ibmqx4*, those are the real chips of 5 qubits. Eg:
-```device = 'ibmqx2' ```
+- **backend**: Type of backend to run the experiment. Options: *simulator*, or real backends (You can use the available_backends() method to get the availables backends), those are the real chips of 5 qubits. Eg:
+```device = 'simulator' ```
 - **shots**: Number of shots of the experiments. Maximum 8192 shots. Eg:
 ```shots = 1024 ```
 - **name**: Name of the experiment. This paramater is optional, by default the name will be 'Experiment \#YmdHMS'. Eg:
@@ -143,8 +143,8 @@ api.run_job(qasms, backend, shots, max_credits)
    { 'qasm': 'OPENQASM 2.0;\n\ninclude "qelib1.inc";\nqreg q[5];\ncreg c[5];\nx q[0];\nmeasure q[0] -> c[0];\n'}
 ]
 ```
-- **backend**: Type of backend to run the experiment. Options: *simulator*, *ibmqx2*, *ibmqx3* (16 qubits) or *ibmqx4*. Eg:
-```device = 'ibmqx2' ```
+- **backend**: Type of backend to run the experiment. Options: *simulator*, or real backends (You can use the available_backends() method to get the availables backends). Eg:
+```device = 'simulator' ```
 - **shots**: Number of shots of the experiments. Maximum 8192 shots. Eg:
 ```shots = 1024 ```
 - **max_credits**: Maximum number of the credits to spend in the executions. If the executions are more expensives, the job is aborted. Eg:
@@ -179,7 +179,7 @@ api.backend_status(backend)
 ```
 
 - **backend**: The backend to get its availability. By default is the 5 Qubits Real Chip. Eg:
-```backend='ibmqx2' ```
+```backend='ibmqx4' ```
 
 #### Get Calibration of a Backend
 
@@ -189,6 +189,9 @@ To know the last calibration of a backend (real chip 5Q by default) you can run:
 api.backend_calibration(backend)
 ```
 
+- **backend**: The backend to get its last calibration. By default is the 5 Qubits Real Chip. Eg:
+```device='ibmqx4' ```
+
 #### Get Parameters Calibration of a Backend
 
 To know the last parameters of calibration of a backend (real chip 5Q by default) you can run:
@@ -197,8 +200,8 @@ To know the last parameters of calibration of a backend (real chip 5Q by default
 api.backend_parameters(backend)
 ```
 
-- **device**: The device to get its last calibration. By default is the 5 Qubits Real Chip. Eg:
-```device='ibmqx2' ```
+- **backend**: The backend to get its last calibration. By default is the 5 Qubits Real Chip. Eg:
+```device='ibmqx4' ```
 
 #### Get Available Devices
 
@@ -208,78 +211,6 @@ To know the devices where you can run (by name):
 api.available_backends()
 ```
 
-
-#### Jupyter
-
-To show the result and the code in Jupyter, you can use the next snippet that has some visual representation functions:
-
-```python
-# USER, PLEASE SET CONFIG:
-token="_TOKEN_"
-# ---- UTILS -----
-from IBMQuantumExperience import IBMQuantumExperience
-from IPython.display import Image, display
-import matplotlib.pyplot as plt
-import numpy as np
-%matplotlib inline
-api = IBMQuantumExperience(token)
-def showImageCode(idCode):
-    if (idCode):
-        code = api.get_image_code(idCode)
-        if (code.get('error', None)):
-            print("Failed to recover the Code")
-        else:
-            display(Image(code['url']))
-    else:
-        print("Invalid IdCode")
-def printBars(values, labels):
-    N = len(values)
-    ind = np.arange(N)  # the x locations for the groups
-    width = 0.35       # the width of the bars
-    fig, ax = plt.subplots()
-    rects1 = ax.bar(ind, values, width, color='r')
-    # add some text for labels, title and axes ticks
-    ax.set_ylabel('Probabilities')
-    ax.set_xticks(ind + (width/2.))
-    ax.set_xticklabels(labels)
-    def autolabel(rects):
-        # attach some text labels
-        for rect in rects:
-            height = rect.get_height()
-            ax.text(rect.get_x() + rect.get_width()/2., 1.05*height,
-                    '%f' % float(height),
-                    ha='center', va='bottom')
-    autolabel(rects1)
-    plt.show()
-def showResultsByExecution(executionRaw):
-    result = executionRaw.get('result', {})
-    data = result.get('data', {})
-    print('Execution in ' + executionRaw.get('deviceRunType', 'Unknown') + ' at ' + executionRaw.get('endDate', 'Unknown'))
-    if (data.get('p', None)):
-        values = data['p']['values']
-        labels = data['p']['labels']
-        printBars(values, labels)
-    else:
-        print("Not plotted. Results are: "+str(executionRaw))
-def showResultsByIdExecution(idExecution):
-    execution = api.get_result_from_execution(idExecution)
-    if (execution.get('measure', None)):
-        values = execution['measure']['values']
-        labels = execution['measure']['labels']
-        printBars(values, labels)
-    else:
-        print("Not plotted. Results are: "+str(execution))
-def showLastCodes():
-    codes = api.get_last_codes()
-    for code in codes:
-        print("--------------------------------")
-        print("Code " + code.get('name', 'Unknown'))
-        print(" ")
-        showImageCode(code.get('id', None))
-        print("------- Executions -------------")
-        for execution in code.get('executions', []):
-            showResultsByExecution(execution)
-```
 
 ## Deploy and Test
 
