@@ -151,6 +151,7 @@ class _Request(object):
         """
         POST Method Wrapper of the REST API
         """
+        self.result = None
         data = data or {}
         headers = {'Content-Type': 'application/json',
                    'x-qx-client-application': self.client_application}
@@ -163,8 +164,12 @@ class _Request(object):
             if not self.check_token(respond):
                 respond = requests.post(url, data=data, headers=headers,
                                         verify=self.verify)
+
             if self._response_good(respond):
-                return self.result
+                if self.result:
+                    return self.result
+                else:
+                    return respond.json()
             else:
                 retries -= 1
                 time.sleep(self.timeout_interval)
@@ -176,6 +181,7 @@ class _Request(object):
         """
         PUT Method Wrapper of the REST API
         """
+        self.result = None
         data = data or {}
         headers = {'Content-Type': 'application/json',
                    'x-qx-client-application': self.client_application}
@@ -189,7 +195,10 @@ class _Request(object):
                 respond = requests.put(url, data=data, headers=headers,
                                         verify=self.verify)
             if self._response_good(respond):
-                return self.result
+                if self.result:
+                    return self.result
+                else:
+                    return respond.json()
             else:
                 retries -= 1
                 time.sleep(self.timeout_interval)
@@ -201,6 +210,7 @@ class _Request(object):
         """
         GET Method Wrapper of the REST API
         """
+        self.result = None
         access_token = ''
         if with_token:
             access_token = self.credential.get_token() or ''
@@ -215,7 +225,10 @@ class _Request(object):
                 respond = requests.get(url, verify=self.verify,
                                        headers=headers)
             if self._response_good(respond):
-                return self.result
+                if self.result:
+                    return self.result
+                else:
+                    return respond.json()
             else:
                 retries -= 1
                 time.sleep(self.timeout_interval)
