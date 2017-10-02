@@ -168,11 +168,14 @@ class _Request(object):
             if self._response_good(respond):
                 if self.result:
                     return self.result
-                else:
+                elif retries < 2:
                     return respond.json()
+                else:
+                    retries -= 1
             else:
                 retries -= 1
                 time.sleep(self.timeout_interval)
+
         # timed out
         raise ApiError(usr_msg='Failed to get proper ' +
                        'response from backend.')
@@ -197,8 +200,10 @@ class _Request(object):
             if self._response_good(respond):
                 if self.result:
                     return self.result
-                else:
+                elif retries < 2:
                     return respond.json()
+                else:
+                    retries -= 1
             else:
                 retries -= 1
                 time.sleep(self.timeout_interval)
@@ -227,8 +232,10 @@ class _Request(object):
             if self._response_good(respond):
                 if self.result:
                     return self.result
-                else:
+                elif retries < 2:
                     return respond.json()
+                else:
+                    retries -= 1
             else:
                 retries -= 1
                 time.sleep(self.timeout_interval)
