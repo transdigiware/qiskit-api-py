@@ -742,75 +742,7 @@ class IBMQuantumExperience(object):
                     del user_data["credit"]["lastRefill"]
                 return user_data["credit"]
             return {}
-
-    # Admins Methods
-    '''
-    Methods to run by admins, to manage users
-    '''
-
-    def create_user(self, name, email, password, institution,
-                    access_token=None, user_id=None):
-        """
-        Create a user by admin
-        """
-        if access_token:
-            self.req.credential.set_token(access_token)
-        if user_id:
-            self.req.credential.set_user_id(user_id)
-        if not self.check_credentials():
-            return {"error": "Not credentials valid"}
-
-        data = {
-                'firstName': name,
-                'email': email,
-                'password': password,
-                'institution': institution
-               }
-
-        user = self.req.post('/users/createByAdmin', data=json.dumps(data))
-        return user
-
-    def get_user_groups(self, access_token=None, user_id=None):
-        """
-        Get user groups to asign to users
-        """
-        if access_token:
-            self.req.credential.set_token(access_token)
-        if user_id:
-            self.req.credential.set_user_id(user_id)
-        if not self.check_credentials():
-            return {"error": "Not credentials valid"}
-
-        user_groups = self.req.get('/UserGroups')
-        return user_groups
-
-    def set_user_group(self, id_user, name_user_group,
-                       access_token=None, user_id=None):
-        """
-        Set user group to User
-        """
-        if access_token:
-            self.req.credential.set_token(access_token)
-        if user_id:
-            self.req.credential.set_user_id(user_id)
-        if not self.check_credentials():
-            return {"error": "Not credentials valid"}
-
-        id_user_group = None
-        user_groups = self.get_user_groups(access_token, user_id)
-        for group in user_groups:
-            if group['name'].lower() == name_user_group.lower():
-                id_user_group = group['id']
-                break
-
-        if id_user_group:
-            user = self.req.put('/users/' + str(id_user) +
-                                '/groups/rel/' + str(id_user_group))
-            return user
-        else:
-            raise ApiError(usr_msg='User group doesnt exist ' +
-                           name_user_group)
-
+        
 
 class ApiError(Exception):
     """
