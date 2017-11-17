@@ -262,7 +262,11 @@ class _Request(object):
                 respond.text))
             return self._parse_response(respond)
         try:
-            self.result = respond.json()
+            if (str(respond.headers['content-type']).startswith("text/html;")):
+                self.result = respond.text
+                return True
+            else:
+                self.result = respond.json()
         except (json.JSONDecodeError, ValueError):
             usr_msg = 'device server returned unexpected http response'
             dev_msg = usr_msg + ': ' + respond.text
@@ -731,7 +735,7 @@ class IBMQuantumExperience(object):
 
     def get_my_credits(self, access_token=None, user_id=None):
         """
-        Get the the credits by user to use in the QX Platform
+        Get the credits by user to use in the QX Platform
         """
         if access_token:
             self.req.credential.set_token(access_token)
@@ -749,7 +753,13 @@ class IBMQuantumExperience(object):
                     del user_data["credit"]["lastRefill"]
                 return user_data["credit"]
             return {}
-        
+
+    def api_version(self):
+        """
+        Get the API Version of the QX Platform
+        """
+        return self.req.get('/version')
+
 
 class ApiError(Exception):
     """
