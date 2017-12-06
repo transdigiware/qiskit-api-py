@@ -548,7 +548,8 @@ class IBMQuantumExperience(object):
             return respond
 
     def run_job(self, qasms, backend='simulator', shots=1,
-                max_credits=3, seed=None, access_token=None, user_id=None):
+                max_credits=3, seed=None, hub=None, group=None,
+                project=None, access_token=None, user_id=None):
         """
         Execute a job
         """
@@ -577,10 +578,19 @@ class IBMQuantumExperience(object):
             return {"error": "Not seed allowed. Max 10 digits."}
 
         data['backend']['name'] = backend_type
-        job = self.req.post('/Jobs', data=json.dumps(data))
+
+        if ((hub is not None) and (group is not None)
+                and (project is not None)):
+            job = self.req.post('/Network/{}/Groups/{}/Projects/{}/jobs'
+                                .format(hub, group, project),
+                                data=json.dumps(data))
+        else:
+            job = self.req.post('/Jobs', data=json.dumps(data))
+
         return job
 
-    def get_job(self, id_job, access_token=None, user_id=None):
+    def get_job(self, id_job, hub=None, group=None, project=None,
+                access_token=None, user_id=None):
         """
         Get the information about a job, by its id
         """
@@ -598,7 +608,13 @@ class IBMQuantumExperience(object):
             respond["status"] = 'Error'
             respond["error"] = "Job ID not specified"
             return respond
-        job = self.req.get('/Jobs/' + id_job)
+
+        if ((hub is not None) and (group is not None) and
+                (project is not None)):
+            job = self.req.get('/Network/{}/Groups/{}/Projects/{}/jobs/{}'
+                               .format(hub, group, project, id_job))
+        else:
+            job = self.req.get('/Jobs/' + id_job)
 
         # To remove result object and add the attributes to data object
         if 'qasms' in job:
