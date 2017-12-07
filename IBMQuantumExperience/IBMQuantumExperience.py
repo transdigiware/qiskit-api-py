@@ -775,7 +775,10 @@ class IBMQuantumExperience(object):
 
             url = get_backend_url(self.config, hub, group, project)
 
-            return [backend for backend in self.req.get(url)
+            ret = self.req.get(url)
+            if (ret is not None) and (isinstance(ret, dict)):
+                return []
+            return [backend for backend in ret
                     if backend.get('status') == 'on']
 
     def available_backend_simulators(self, access_token=None, user_id=None):
@@ -789,7 +792,10 @@ class IBMQuantumExperience(object):
         if not self.check_credentials():
             raise CredentialsError('credentials invalid')
         else:
-            return [backend for backend in self.req.get('/Backends')
+            ret = self.req.get('/Backends')
+            if (ret is not None) and (isinstance(ret, dict)):
+                return []
+            return [backend for backend in ret
                     if backend.get('status') == 'on' and
                     backend.get('simulator') is True]
 
