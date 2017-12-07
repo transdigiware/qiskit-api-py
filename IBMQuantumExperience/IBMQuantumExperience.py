@@ -17,6 +17,21 @@ logging.basicConfig()
 CLIENT_APPLICATION = 'qiskit-api-py'
 
 
+def get_job_url(config, hub, group, project):
+    """
+    Util method to get job url
+    """
+    if ((config is not None) and ('hub' in config) and (hub is None)):
+        hub = config["hub"]
+    if ((config is not None) and ('group' in config) and (group is None)):
+        group = config["group"]
+    if ((config is not None) and ('project' in config) and (project is None)):
+        project = config["project"]
+    if ((hub is not None) and (group is not None) and (project is not None)):
+        return '/Network/{}/Groups/{}/Projects/{}/jobs'.format(hub, group, project)
+    return '/Jobs'
+
+
 class _Credentials(object):
     """
     The Credential class to manage the tokens
@@ -322,6 +337,7 @@ class IBMQuantumExperience(object):
 
     def __init__(self, token=None, config=None, verify=True):
         """ If verify is set to false, ignore SSL certificate errors """
+        self.config = config
         self.req = _Request(token, config=config, verify=verify)
 
     def _check_backend(self, backend, endpoint):
@@ -579,13 +595,9 @@ class IBMQuantumExperience(object):
 
         data['backend']['name'] = backend_type
 
-        if ((hub is not None) and (group is not None)
-                and (project is not None)):
-            job = self.req.post('/Network/{}/Groups/{}/Projects/{}/jobs'
-                                .format(hub, group, project),
-                                data=json.dumps(data))
-        else:
-            job = self.req.post('/Jobs', data=json.dumps(data))
+        url = get_job_url(self.config, hub, group, project)
+
+        job = self.req.post(url, data=json.dumps(data))
 
         return job
 
@@ -609,12 +621,11 @@ class IBMQuantumExperience(object):
             respond["error"] = "Job ID not specified"
             return respond
 
-        if ((hub is not None) and (group is not None) and
-                (project is not None)):
-            job = self.req.get('/Network/{}/Groups/{}/Projects/{}/jobs/{}'
-                               .format(hub, group, project, id_job))
-        else:
-            job = self.req.get('/Jobs/' + id_job)
+        url = get_job_url(self.config, hub, group, project)
+
+        url += '/' + id_job
+
+        job = self.req.get(url)
 
         # To remove result object and add the attributes to data object
         if 'qasms' in job:
