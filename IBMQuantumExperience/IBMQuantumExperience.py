@@ -102,12 +102,14 @@ class _Credentials(object):
             client_application += ':' + self.config["client_application"]
         headers = {'x-qx-client-application': client_application}
         if self.token_unique:
-            self.data_credentials = requests.post(str(self.config.get('url') +
-                                                  "/users/loginWithToken"),
-                                                  data={'apiToken':
-                                                        self.token_unique},
-                                                  verify=self.verify,
-                                                  headers=headers).json()
+            try:
+                response = requests.post(str(self.config.get('url') +
+                                             "/users/loginWithToken"),
+                                         data={'apiToken': self.token_unique},
+                                         verify=self.verify,
+                                         headers=headers)
+            except requests.RequestException as e:
+                raise ApiError('error during login: %s' % str(e))
         elif config and ("email" in config) and ("password" in config):
             email = config.get('email', None)
             password = config.get('password', None)
@@ -115,13 +117,31 @@ class _Credentials(object):
                 'email': email,
                 'password': password
             }
-            self.data_credentials = requests.post(str(self.config.get('url') +
-                                                  "/users/login"),
-                                                  data=credentials,
-                                                  verify=self.verify,
-                                                  headers=headers).json()
+            try:
+                response = requests.post(str(self.config.get('url') +
+                                             "/users/login"),
+                                         data=credentials,
+                                         verify=self.verify,
+                                         headers=headers)
+            except requests.RequestException as e:
+                raise ApiError('error during login: %s' % str(e))
         else:
             raise CredentialsError('invalid token')
+
+        # 401 is used for
+        if response.status_code == 401:
+            try:
+                # For 401: ACCEPT_LICENSE_REQUIRED, a detailed message is
+                # present.
+                error_message = response.json()['error']['message']
+                raise CredentialsError('error durin login: %s' % error_message)
+            except:
+                raise CredentialsError('invalid token')
+        try:
+            response.raise_for_status()
+            self.data_credentials = response.json()
+        except (requests.HTTPError, json.decoder.JSONDecodeError) as e:
+            raise ApiError('error during login: %s' % str(e))
 
         if self.get_token() is None:
             raise CredentialsError('invalid token')
