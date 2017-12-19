@@ -12,6 +12,7 @@ import sys
 import traceback
 import requests
 import re
+from HTTPProxyDigestAuth import HTTPProxyDigestAuth
 
 logging.basicConfig()
 CLIENT_APPLICATION = 'qiskit-api-py'
@@ -64,10 +65,12 @@ class _Credentials(object):
     """
     config_base = {'url': 'https://quantumexperience.ng.bluemix.net/api'}
 
-    def __init__(self, token, config=None, verify=True):
+    def __init__(self, token, config=None, verify=True, proxies=None, auth=None):
         self.token_unique = token
         self.verify = verify
         self.config = config
+        self.proxies = proxies
+        self.auth = auth
         if not verify:
             import requests.packages.urllib3 as urllib3
             urllib3.disable_warnings()
@@ -107,7 +110,9 @@ class _Credentials(object):
                                              "/users/loginWithToken"),
                                          data={'apiToken': self.token_unique},
                                          verify=self.verify,
-                                         headers=headers)
+                                         headers=headers,
+                                         proxies=self.proxies,
+                                         auth=self.auth)
             except requests.RequestException as e:
                 raise ApiError('error during login: %s' % str(e))
         elif config and ("email" in config) and ("password" in config):
@@ -122,7 +127,9 @@ class _Credentials(object):
                                              "/users/login"),
                                          data=credentials,
                                          verify=self.verify,
-                                         headers=headers)
+                                         headers=headers,
+                                         proxies=self.proxies,
+                                         auth=self.auth)
             except requests.RequestException as e:
                 raise ApiError('error during login: %s' % str(e))
         else:
@@ -186,9 +193,15 @@ class _Request(object):
         self.verify = verify
         self.client_application = CLIENT_APPLICATION
         self.config = config
+        if (('proxies' in config) and ('urls' in config['proxies']) and
+           ('username' in config['proxies']) and
+           ('password' in config['proxies'])):
+            self.proxies = self.config['proxies']['urls']
+            self.auth = HTTPProxyDigestAuth(config['proxies']['username'],
+                                            config['proxies']['password'])
         if self.config and ("client_application" in self.config):
             self.client_application += ':' + self.config["client_application"]
-        self.credential = _Credentials(token, self.config, verify)
+        self.credential = _Credentials(token, self.config, verify, self.proxies, self.auth)
         self.log = logging.getLogger(__name__)
         if not isinstance(retries, int):
             raise TypeError('post retries must be positive integer')
@@ -221,10 +234,13 @@ class _Request(object):
         retries = self.retries
         while retries > 0:
             respond = requests.post(url, data=data, headers=headers,
-                                    verify=self.verify)
+                                    verify=self.verify, proxies=self.proxies,
+                                    auth=self.auth)
             if not self.check_token(respond):
                 respond = requests.post(url, data=data, headers=headers,
-                                        verify=self.verify)
+                                        verify=self.verify,
+                                        proxies=self.proxies,
+                                        auth=self.auth)
 
             if self._response_good(respond):
                 if self.result:
@@ -254,10 +270,13 @@ class _Request(object):
         retries = self.retries
         while retries > 0:
             respond = requests.put(url, data=data, headers=headers,
-                                    verify=self.verify)
+                                   verify=self.verify, proxies=self.proxies,
+                                   auth=self.auth)
             if not self.check_token(respond):
                 respond = requests.put(url, data=data, headers=headers,
-                                        verify=self.verify)
+                                       verify=self.verify,
+                                       proxies=self.proxies,
+                                       auth=self.auth)
             if self._response_good(respond):
                 if self.result:
                     return self.result
@@ -286,10 +305,12 @@ class _Request(object):
         retries = self.retries
         headers = {'x-qx-client-application': self.client_application}
         while retries > 0:  # Repeat until no error
-            respond = requests.get(url, verify=self.verify, headers=headers)
+            respond = requests.get(url, verify=self.verify, headers=headers,
+                                   proxies=self.proxies, auth=self.auth)
             if not self.check_token(respond):
                 respond = requests.get(url, verify=self.verify,
-                                       headers=headers)
+                                       headers=headers, proxies=self.proxies,
+                                       auth=self.auth)
             if self._response_good(respond):
                 if self.result:
                     return self.result
