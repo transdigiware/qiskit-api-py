@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(name='IBMQuantumExperience',
       packages=['IBMQuantumExperience'],  # this must be the same as the name above
-      version='1.8.21',  # this should match __init__.__version__
+      version='1.8.22',  # this should match __init__.__version__
       author='IBM Research ETX',
       description='A Python library for the Quantum Experience API.',
       author_email='pacom@us.ibm.com',
