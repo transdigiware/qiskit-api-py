@@ -12,7 +12,7 @@ import sys
 import traceback
 import requests
 import re
-from HTTPProxyDigestAuth import HTTPProxyDigestAuth
+from .HTTPProxyDigestAuth import HTTPProxyDigestAuth
 
 logging.basicConfig()
 CLIENT_APPLICATION = 'qiskit-api-py'
