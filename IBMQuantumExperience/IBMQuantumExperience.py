@@ -193,12 +193,12 @@ class _Request(object):
         self.verify = verify
         self.client_application = CLIENT_APPLICATION
         self.config = config
-        if (('proxies' in config) and ('urls' in config['proxies']) and
-           ('username' in config['proxies']) and
-           ('password' in config['proxies'])):
+        if (('proxies' in config) and ('urls' in config['proxies'])):
             self.proxies = self.config['proxies']['urls']
-            self.auth = HTTPProxyDigestAuth(config['proxies']['username'],
-                                            config['proxies']['password'])
+            if (('username' in config['proxies']) and
+               ('password' in config['proxies'])):
+                self.auth = HTTPProxyDigestAuth(config['proxies']['username'],
+                                                config['proxies']['password'])
         if self.config and ("client_application" in self.config):
             self.client_application += ':' + self.config["client_application"]
         self.credential = _Credentials(token, self.config, verify, self.proxies, self.auth)
