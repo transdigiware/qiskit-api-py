@@ -193,7 +193,10 @@ class _Request(object):
         self.verify = verify
         self.client_application = CLIENT_APPLICATION
         self.config = config
-        if (('proxies' in config) and ('urls' in config['proxies'])):
+        self.proxies = None
+        self.auth = None
+        if ((config is not None) and ('proxies' in config) and
+           ('urls' in config['proxies'])):
             self.proxies = self.config['proxies']['urls']
             if (('username' in config['proxies']) and
                ('password' in config['proxies'])):
