@@ -610,7 +610,7 @@ class IBMQuantumExperience(object):
             return respond
 
     def run_job(self, qasms, backend='simulator', shots=1,
-                max_credits=3, seed=None, hub=None, group=None,
+                max_credits=None, seed=None, hub=None, group=None,
                 project=None, access_token=None, user_id=None):
         """
         Execute a job
@@ -626,8 +626,9 @@ class IBMQuantumExperience(object):
             qasm['qasm'] = qasm['qasm'].replace('OPENQASM 2.0;', '')
         data = {'qasms': qasms,
                 'shots': shots,
-                'maxCredits': max_credits,
                 'backend': {}}
+        if max_credits:
+            data['maxCredits'] = max_credits
 
         backend_type = self._check_backend(backend, 'job')
 
