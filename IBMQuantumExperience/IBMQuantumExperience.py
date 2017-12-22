@@ -97,7 +97,9 @@ class _Credentials(object):
         """Obtain the token to access to QX Platform.
 
         Raises:
-            CredentialsError: when token is invalid.
+            CredentialsError: when token is invalid or the user has not
+                accepted the license.
+            ApiError: when the response from the server couldn't be parsed.
         """
         client_application = CLIENT_APPLICATION
         if self.config and ("client_application" in self.config):
@@ -132,14 +134,18 @@ class _Credentials(object):
         else:
             raise CredentialsError('invalid token')
 
-        # 401 is used for
         if response.status_code == 401:
+            error_message = None
             try:
                 # For 401: ACCEPT_LICENSE_REQUIRED, a detailed message is
-                # present.
+                # present in the response and passed to the exception.
                 error_message = response.json()['error']['message']
-                raise CredentialsError('error durin login: %s' % error_message)
             except:
+                pass
+
+            if error_message:
+                raise CredentialsError('error during login: %s' % error_message)
+            else:
                 raise CredentialsError('invalid token')
         try:
             response.raise_for_status()
