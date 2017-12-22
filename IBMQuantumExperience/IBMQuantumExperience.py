@@ -623,7 +623,7 @@ class IBMQuantumExperience(object):
 
     def run_job(self, qasms, backend='simulator', shots=1,
                 max_credits=None, seed=None, hub=None, group=None,
-                project=None, access_token=None, user_id=None):
+                project=None, hpc=None, access_token=None, user_id=None):
         """
         Execute a job
         """
@@ -641,6 +641,9 @@ class IBMQuantumExperience(object):
                 'backend': {}}
         if max_credits:
             data['maxCredits'] = max_credits
+
+        if hpc:
+            data['hpc'] = hpc
 
         backend_type = self._check_backend(backend, 'job')
 
