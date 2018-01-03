@@ -150,7 +150,7 @@ class _Credentials(object):
         try:
             response.raise_for_status()
             self.data_credentials = response.json()
-        except (requests.HTTPError, json.decoder.JSONDecodeError) as e:
+        except (requests.HTTPError, ValueError) as e:
             raise ApiError('error during login: %s' % str(e))
 
         if self.get_token() is None:
@@ -468,7 +468,7 @@ class IBMQuantumExperience(object):
         if not self.check_credentials():
             raise CredentialsError('credentials invalid')
         execution = self.req.get('/Executions/' + id_execution)
-        if execution["codeId"]:
+        if "codeId" in execution:
             execution['code'] = self.get_code(execution["codeId"])
         return execution
 
