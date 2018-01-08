@@ -10,7 +10,8 @@ setup(name='IBMQuantumExperience',
       keywords=['ibm', 'quantum computer', 'quantum experience'],
       license='Apache-2.0',
       install_requires=[
-          'requests'
+          'requests',
+          'requests_ntlm'
       ],
       classifiers=(
           'Development Status :: 5 - Production/Stable',
