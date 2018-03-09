@@ -466,36 +466,12 @@ class IBMQuantumExperience(object):
                 return 'ibmqx3'
             elif backend in self.__names_backend_simulator:
                 return 'sim_trivial_2'
-        elif endpoint == 'job':
-            if backend in self.__names_backend_ibmqxv2:
-                return 'ibmqx2'
-            elif backend in self.__names_backend_ibmqxv3:
-                return 'ibmqx3'
-            elif backend in self.__names_backend_simulator:
-                return 'simulator'
-        elif endpoint == 'status':
-            if backend in self.__names_backend_ibmqxv2:
-                return 'ibmqx2'
-            elif backend in self.__names_backend_ibmqxv3:
-                return 'ibmqx3'
-            elif backend in self.__names_backend_simulator:
-                return 'ibmqx_qasm_simulator'
-        elif endpoint == 'calibration':
-            if backend in self.__names_backend_ibmqxv2:
-                return 'ibmqx2'
-            elif backend in self.__names_backend_ibmqxv3:
-                return 'ibmqx3'
-            elif backend in self.__names_backend_simulator:
-                return 'ibmqx_qasm_simulator'
 
         # Check for new-style backends
         backends = self.available_backends()
         for backend in backends:
             if backend['name'] == original_backend:
-                if backend.get('simulator', False):
-                    return 'chip_simulator'
-                else:
-                    return original_backend
+              return original_backend
         # backend unrecognized
         return None
 

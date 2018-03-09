@@ -90,7 +90,7 @@ measure q[2] -> f[0];
         '''
         Check run an experiment by user authenticated
         '''
-        backend = self.api.available_backend_simulators()[0]['name']
+        backend = 'ibmqx_qasm_simulator'
         shots = 1
         experiment = self.api.run_experiment(self.qasm, backend, shots)
         check_status = None
@@ -102,7 +102,7 @@ measure q[2] -> f[0];
         '''
         Check run an experiment with seed by user authenticated
         '''
-        backend = self.api.available_backend_simulators()[0]['name']
+        backend = 'ibmqx_qasm_simulator'
         shots = 1
         seed = 815
         experiment = self.api.run_experiment(self.qasm, backend, shots,
@@ -128,7 +128,7 @@ measure q[2] -> f[0];
         '''
         Check run an job by user authenticated
         '''
-        backend = 'simulator'
+        backend = 'ibmqx_qasm_simulator'
         shots = 1
         job = self.api.run_job(self.qasms, backend, shots)
         check_status = None
@@ -192,7 +192,7 @@ measure q[2] -> f[0];
         '''
         Check that exceeding register size limit generates exception
         '''
-        backend = 'simulator'
+        backend = 'ibmqx_qasm_simulator'
         shots = 1
         qasm = """OPENQASM 2.0;
 include "qelib1.inc";
