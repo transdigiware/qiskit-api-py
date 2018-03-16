@@ -741,7 +741,7 @@ class IBMQuantumExperience(object):
             self.req.credential.set_user_id(user_id)
         if not self.check_credentials():
             return {"error": "Not credentials valid"}
-        jobs = self.req.get('/Jobs', '&filter={"limit":' + str(limit) + '}')
+        jobs = self.req.get('/Jobs', '&filter={"order": "creationDate DESC", "limit":' + str(limit) + '}')
         return jobs
 
     def cancel_job(self, id_job, hub, group, project,
