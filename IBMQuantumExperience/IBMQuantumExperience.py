@@ -651,7 +651,7 @@ class IBMQuantumExperience(object):
             respond["error"] = execution
             return respond
 
-    def run_job(self, qasms, backend='simulator', shots=1,
+    def run_job(self, job, backend='simulator', shots=1,
                 max_credits=None, seed=None, hub=None, group=None,
                 project=None, hpc=None, access_token=None, user_id=None):
         """
@@ -663,32 +663,48 @@ class IBMQuantumExperience(object):
             self.req.credential.set_user_id(user_id)
         if not self.check_credentials():
             return {"error": "Not credentials valid"}
-        for qasm in qasms:
-            qasm['qasm'] = qasm['qasm'].replace('IBMQASM 2.0;', '')
-            qasm['qasm'] = qasm['qasm'].replace('OPENQASM 2.0;', '')
-        data = {'qasms': qasms,
-                'shots': shots,
-                'backend': {}}
-        if max_credits:
+
+        if isinstance(job, (list, tuple)):
+          qasms = job
+          for qasm in qasms:
+              qasm['qasm'] = qasm['qasm'].replace('IBMQASM 2.0;', '')
+              qasm['qasm'] = qasm['qasm'].replace('OPENQASM 2.0;', '')
+
+          data = {'qasms': qasms,
+                  'shots': shots,
+                  'backend': {}}
+
+          if max_credits:
             data['maxCredits'] = max_credits
 
+          backend_type = self._check_backend(backend, 'job')
+
+          if not backend_type:
+              raise BadBackendError(backend)
+
+          if seed and len(str(seed)) < 11 and str(seed).isdigit():
+              data['seed'] = seed
+          elif seed:
+              return {"error": "Not seed allowed. Max 10 digits."}
+
+          data['backend']['name'] = backend_type
+        elif isinstance(job, dict):
+          q_obj = job
+          data = {'qObject': q_obj}
+
+          backend = q_obj["config"]["backend"]
+          backend_type = self._check_backend(backend, 'job')
+
+          if not backend_type:
+              raise BadBackendError(backend)
+        else:
+          return {"error": "Not a valid data to send"}
+
         if hpc:
-            data['hpc'] = hpc
-
-        backend_type = self._check_backend(backend, 'job')
-
-        if not backend_type:
-            raise BadBackendError(backend)
-
-        if seed and len(str(seed)) < 11 and str(seed).isdigit():
-            data['seed'] = seed
-        elif seed:
-            return {"error": "Not seed allowed. Max 10 digits."}
-
-        data['backend']['name'] = backend_type
+          data['hpc'] = hpc
 
         url = get_job_url(self.config, hub, group, project)
-
+        
         job = self.req.post(url, data=json.dumps(data))
 
         return job

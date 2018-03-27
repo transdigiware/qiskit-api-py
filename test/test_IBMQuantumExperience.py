@@ -5,6 +5,8 @@ Unit Test
 
 import sys
 import unittest
+import json
+import os
 # pylint: disable=W0403
 from config import API_TOKEN
 sys.path.append('IBMQuantumExperience')
@@ -14,6 +16,8 @@ from IBMQuantumExperience import IBMQuantumExperience  # noqa
 from IBMQuantumExperience import ApiError  # noqa
 from IBMQuantumExperience import BadBackendError  # noqa
 from IBMQuantumExperience import RegisterSizeError  # noqa
+
+dir_path = os.path.dirname(os.path.realpath(__file__))
 
 
 class TestQX(unittest.TestCase):
@@ -48,6 +52,8 @@ x q[0];
 measure q[0] -> c[0];
 measure q[2] -> f[0];
 """}]
+
+        self.q_obj = json.load(open(dir_path+'/q_obj.json'))
 
     def tearDown(self):
         pass
@@ -135,6 +141,16 @@ measure q[2] -> f[0];
         if 'status' in job:
             check_status = job['status']
         self.assertIsNotNone(check_status)
+
+    def test_api_run_q_obj_fail(self):
+        '''
+        Check run an q_obj by user authenticated
+        '''
+        job = self.api.run_job(self.q_obj)
+        if ('error' in job) and ('code' in job['error']) and (job['error']['status'] == 400):
+          self.assertTrue(True)
+        else:
+          self.assertTrue(False)
 
     def test_api_run_job_fail_backend(self):
         '''
