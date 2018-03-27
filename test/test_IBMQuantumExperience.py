@@ -142,16 +142,6 @@ measure q[2] -> f[0];
             check_status = job['status']
         self.assertIsNotNone(check_status)
 
-    def test_api_run_q_obj_fail(self):
-        '''
-        Check run an q_obj by user authenticated
-        '''
-        job = self.api.run_job(self.q_obj)
-        if ('error' in job) and ('code' in job['error']) and (job['error']['status'] == 400):
-          self.assertTrue(True)
-        else:
-          self.assertTrue(False)
-
     def test_api_run_job_fail_backend(self):
         '''
         Check run an job by user authenticated is not run because the backend
