@@ -61,6 +61,8 @@ def get_backend_url(config, hub, group, project):
 
 def clean_qobject_result(job):
   job['qObject']["id"] = job["id"]
+  if 'status' not in job['qObject']:
+    job['qObject']['status'] = job["status"]
   return job['qObject']
 
 class _Credentials(object):
