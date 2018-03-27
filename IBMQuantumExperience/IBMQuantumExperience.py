@@ -60,7 +60,7 @@ def get_backend_url(config, hub, group, project):
     return '/Backends'
 
 def clean_qobject_result(job):
-  job['qObject']["id"] = job.id
+  job['qObject']["id"] = job["id"]
   return job['qObject']
 
 class _Credentials(object):
