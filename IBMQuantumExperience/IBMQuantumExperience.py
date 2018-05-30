@@ -453,7 +453,7 @@ class IBMQuantumExperience(object):
     __names_backend_ibmqxv2 = ['ibmqx5qv2', 'ibmqx2', 'qx5qv2', 'qx5q', 'real']
     __names_backend_ibmqxv3 = ['ibmqx3']
     __names_backend_simulator = ['simulator', 'sim_trivial_2',
-                                 'ibmqx_qasm_simulator']
+                                 'ibmqx_qasm_simulator', 'ibmq_qasm_simulator']
 
     def __init__(self, token=None, config=None, verify=True):
         """ If verify is set to false, ignore SSL certificate errors """
@@ -672,6 +672,11 @@ class IBMQuantumExperience(object):
         if not self.check_credentials():
             return {"error": "Not credentials valid"}
 
+        backend_type = self._check_backend(backend, 'job')
+
+        if not backend_type:
+            raise BadBackendError(backend)
+
         if isinstance(job, (list, tuple)):
           qasms = job
           for qasm in qasms:
@@ -685,11 +690,6 @@ class IBMQuantumExperience(object):
           if max_credits:
             data['maxCredits'] = max_credits
 
-          backend_type = self._check_backend(backend, 'job')
-
-          if not backend_type:
-              raise BadBackendError(backend)
-
           if seed and len(str(seed)) < 11 and str(seed).isdigit():
               data['seed'] = seed
           elif seed:
@@ -698,13 +698,10 @@ class IBMQuantumExperience(object):
           data['backend']['name'] = backend_type
         elif isinstance(job, dict):
           q_obj = job
-          data = {'qObject': q_obj}
+          data = {'qObject': q_obj,
+                  'backend': {}}
 
-          backend = q_obj["config"]["backend"]
-          backend_type = self._check_backend(backend, 'job')
-
-          if not backend_type:
-              raise BadBackendError(backend)
+          data['backend']['name'] = backend_type
         else:
           return {"error": "Not a valid data to send"}
 
@@ -757,7 +754,7 @@ class IBMQuantumExperience(object):
 
         return job
 
-    def get_jobs(self, limit=50, skip=0, access_token=None, user_id=None):
+    def get_jobs(self, limit=50, skip=0, backend=None, only_completed=False, access_token=None, user_id=None):
         """
         Get the information about the user jobs
         """
@@ -767,7 +764,21 @@ class IBMQuantumExperience(object):
             self.req.credential.set_user_id(user_id)
         if not self.check_credentials():
             return {"error": "Not credentials valid"}
-        jobs = self.req.get('/Jobs', '&filter={"order": "creationDate DESC", "limit":' + str(limit) + ', "skip":' + str(skip) + '}')
+
+        url = '&filter='
+        query = {
+          "order": "creationDate DESC",
+          "limit": limit,
+          "skip": skip,
+          "where" : {}
+        }
+        if backend is not None:
+          query['where']['backend.name'] = backend
+        if only_completed:
+          query['where']['status'] = 'COMPLETED'
+  
+        url = url + json.dumps(query)
+        jobs = self.req.get('/Jobs', url)
         jobs_to_return = []
         for job in jobs:
           jobs_to_return.append(clean_qobject_result(job))
