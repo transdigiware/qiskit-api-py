@@ -15,7 +15,7 @@ import re
 from requests_ntlm import HttpNtlmAuth
 # from .HTTPProxyDigestAuth import HTTPProxyDigestAuth
 
-logging.basicConfig()
+log = logging.getLogger(__name__)
 CLIENT_APPLICATION = 'qiskit-api-py'
 
 
@@ -260,7 +260,7 @@ class _Request(object):
         self.credential = _Credentials(token, self.config, verify,
                                        proxy_urls=self.proxy_urls,
                                        ntlm_credentials=self.ntlm_credentials)
-        self.log = logging.getLogger(__name__)
+
         if not isinstance(retries, int):
             raise TypeError('post retries must be positive integer')
         self.retries = retries
@@ -391,7 +391,7 @@ class _Request(object):
             ApiError: response isn't formatted properly.
         """
         if respond.status_code != requests.codes.ok:
-            self.log.warning('Got a {} code response to {}: {}'.format(
+            log.warning('Got a {} code response to {}: {}'.format(
                 respond.status_code,
                 respond.url,
                 respond.text))
@@ -418,7 +418,7 @@ class _Request(object):
                  self.result['error']['status'] != 400)):
             return True
         else:
-            self.log.warning("Got a 400 code JSON response to %s", respond.url)
+            log.warning("Got a 400 code JSON response to %s", respond.url)
             return False
 
     def _parse_response(self, respond):
