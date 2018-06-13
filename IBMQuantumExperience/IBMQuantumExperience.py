@@ -458,6 +458,26 @@ class IBMQuantumExperience(object):
     def __init__(self, token=None, config=None, verify=True):
         """ If verify is set to false, ignore SSL certificate errors """
         self.config = config
+
+        if self.config and ('url' in self.config):
+          url_parsed = self.config['url'].split('/api')
+          if len(url_parsed) == 2:
+            hub = group = project = None
+            project_parse = url_parsed[1].split('/Projects/')
+            if len(project_parse) == 2:
+              project = project_parse[1]
+              group_parse = project_parse[0].split('/Groups/')
+              if len(group_parse) == 2:
+                group = group_parse[1]
+                hub_parse = group_parse[0].split('/Hubs/')
+                if len(hub_parse) == 2:
+                  hub = hub_parse[1]
+            if (hub and group and project):
+              self.config['project'] = project
+              self.config['group'] = group
+              self.config['hub'] = hub
+              self.config['url'] = url_parsed[0] + '/api'
+
         self.req = _Request(token, config=config, verify=verify)
 
     def _check_backend(self, backend, endpoint):
