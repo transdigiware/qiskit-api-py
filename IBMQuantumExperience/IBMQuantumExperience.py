@@ -774,7 +774,7 @@ class IBMQuantumExperience(object):
 
         return job
 
-    def get_jobs(self, limit=50, skip=0, backend=None, only_completed=False, access_token=None, user_id=None):
+    def get_jobs(self, limit=50, skip=0, backend=None, only_completed=False, filter=None, access_token=None, user_id=None):
         """
         Get the information about the user jobs
         """
@@ -792,10 +792,13 @@ class IBMQuantumExperience(object):
           "skip": skip,
           "where" : {}
         }
-        if backend is not None:
-          query['where']['backend.name'] = backend
-        if only_completed:
-          query['where']['status'] = 'COMPLETED'
+        if filter is not None:
+          query['where'] = filter
+        else:
+          if backend is not None:
+            query['where']['backend.name'] = backend
+          if only_completed:
+            query['where']['status'] = 'COMPLETED'
   
         url = url + json.dumps(query)
         jobs = self.req.get('/Jobs', url)
