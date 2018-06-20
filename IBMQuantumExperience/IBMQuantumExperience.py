@@ -890,7 +890,7 @@ class IBMQuantumExperience(object):
         url = get_backend_stats_url(self.config, hub, backend_type)
 
         ret = self.req.get(url + '/calibration')
-        if ('error' in ret) and ('code' in ret['error']) and (ret['error']['code'] == 'BAD_BACKEND_AUTHENTICATION'):
+        if not bool(ret):
           ret = {}
           ret["backend"] = backend_type
           ret["parameters"] = None
@@ -923,7 +923,7 @@ class IBMQuantumExperience(object):
         url = get_backend_stats_url(self.config, hub, backend_type)
 
         ret = self.req.get(url + '/parameters')
-        if ('error' in ret) and ('code' in ret['error']) and (ret['error']['code'] == 'BAD_BACKEND_AUTHENTICATION'):
+        if not bool(ret):
           ret = {}
           ret["backend"] = backend_type
           ret["parameters"] = None
