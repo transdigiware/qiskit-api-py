@@ -916,8 +916,6 @@ class IBMQuantumExperience(object):
 
         if backend_type in self.__names_backend_simulator:
             ret = {}
-            ret["backend"] = backend_type
-            ret["parameters"] = None
             return ret
 
         url = get_backend_stats_url(self.config, hub, backend_type)
@@ -925,8 +923,6 @@ class IBMQuantumExperience(object):
         ret = self.req.get(url + '/parameters')
         if not bool(ret):
           ret = {}
-          ret["backend"] = backend_type
-          ret["parameters"] = None
         else:
           ret["backend"] = backend_type
         return ret
