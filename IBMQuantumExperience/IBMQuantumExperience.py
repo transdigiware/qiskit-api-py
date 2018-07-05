@@ -826,7 +826,7 @@ class IBMQuantumExperience(object):
             respond["error"] = "Job ID not specified"
             return respond
 
-        url = get_job_status_url(self.config, hub, group, project)
+        url = get_job_url(self.config, hub, group, project)
 
         url += '/' + id_job + '/status'
 
