@@ -33,7 +33,6 @@ def get_job_url(config, hub, group, project):
         return '/Network/{}/Groups/{}/Projects/{}/jobs'.format(hub, group, project)
     return '/Jobs'
 
-
 def get_backend_stats_url(config, hub, backend_type):
     """
     Util method to get backend stats url
@@ -806,6 +805,34 @@ class IBMQuantumExperience(object):
         for job in jobs:
           jobs_to_return.append(clean_qobject_result(job))
         return jobs_to_return
+
+    def get_status_job(self, id_job, hub=None, group=None, project=None,
+                       access_token=None, user_id=None):
+        """
+        Get the status about a job, by its id
+        """
+        if access_token:
+            self.req.credential.set_token(access_token)
+        if user_id:
+            self.req.credential.set_user_id(user_id)
+        if not self.check_credentials():
+            respond = {}
+            respond["status"] = 'Error'
+            respond["error"] = "Not credentials valid"
+            return respond
+        if not id_job:
+            respond = {}
+            respond["status"] = 'Error'
+            respond["error"] = "Job ID not specified"
+            return respond
+
+        url = get_job_status_url(self.config, hub, group, project)
+
+        url += '/' + id_job + '/status'
+
+        status = self.req.get(url)
+
+        return status
 
     def cancel_job(self, id_job, hub, group, project,
                    access_token=None, user_id=None):
