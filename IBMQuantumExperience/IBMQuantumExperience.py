@@ -773,7 +773,7 @@ class IBMQuantumExperience(object):
 
         return job
 
-    def get_jobs(self, limit=50, skip=0, backend=None, only_completed=False, filter=None, access_token=None, user_id=None):
+    def get_jobs(self, limit=10, skip=0, backend=None, only_completed=False, filter=None, hub=None, group=None, project=None, access_token=None, user_id=None):
         """
         Get the information about the user jobs
         """
@@ -784,7 +784,8 @@ class IBMQuantumExperience(object):
         if not self.check_credentials():
             return {"error": "Not credentials valid"}
 
-        url = '&filter='
+        url = get_job_url(self.config, hub, group, project)
+        url += '&filter='
         query = {
           "order": "creationDate DESC",
           "limit": limit,
@@ -800,7 +801,7 @@ class IBMQuantumExperience(object):
             query['where']['status'] = 'COMPLETED'
   
         url = url + json.dumps(query)
-        jobs = self.req.get('/Jobs', url)
+        jobs = self.req.get(url)
         jobs_to_return = []
         for job in jobs:
           jobs_to_return.append(clean_qobject_result(job))
