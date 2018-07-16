@@ -785,7 +785,7 @@ class IBMQuantumExperience(object):
             return {"error": "Not credentials valid"}
 
         url = get_job_url(self.config, hub, group, project)
-        url += '&filter='
+        url_filter = '&filter='
         query = {
           "order": "creationDate DESC",
           "limit": limit,
@@ -800,8 +800,8 @@ class IBMQuantumExperience(object):
           if only_completed:
             query['where']['status'] = 'COMPLETED'
   
-        url = url + json.dumps(query)
-        jobs = self.req.get(url)
+        url_filter = url_filter + json.dumps(query)
+        jobs = self.req.get(url, url_filter)
         jobs_to_return = []
         for job in jobs:
           jobs_to_return.append(clean_qobject_result(job))
