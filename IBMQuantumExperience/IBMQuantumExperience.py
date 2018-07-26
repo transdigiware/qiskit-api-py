@@ -835,7 +835,7 @@ class IBMQuantumExperience(object):
 
         return status
 
-    def cancel_job(self, id_job, hub, group, project,
+    def cancel_job(self, id_job, hub=None, group=None, project=None,
                    access_token=None, user_id=None):
         """
         Cancel the information about a job, by its id
@@ -854,13 +854,10 @@ class IBMQuantumExperience(object):
             respond["status"] = 'Error'
             respond["error"] = "Job ID not specified"
             return respond
-        if not hub or not group or not project:
-            respond = {}
-            respond["status"] = 'Error'
-            respond["error"] = "Hub, Group or Project not specified"
-            return respond
+        
+        url = get_job_url(self.config, hub, group, project)
 
-        url = '/Network/{}/Groups/{}/Projects/{}/jobs/{}/cancel'.format(hub, group, project, id_job)
+        url += '/{}/cancel'.format(id_job)
 
         res = self.req.post(url)
 
