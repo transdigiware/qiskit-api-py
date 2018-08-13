@@ -217,6 +217,7 @@ class _Request(object):
         self.verify = verify
         self.client_application = CLIENT_APPLICATION
         self.config = config
+        self.errorsNotRetry = [401, 403, 413]
 
         # Set the proxy information, if present, from the configuration,
         # with the following format:
@@ -394,7 +395,13 @@ class _Request(object):
                 respond.status_code,
                 respond.url,
                 respond.text))
-            return self._parse_response(respond)
+            if respond.status_code in self.errorsNotRetry:
+              raise ApiError(usr_msg='Got a {} code response to {}: {}'.format(
+                respond.status_code,
+                respond.url,
+                respond.text))
+            else:
+              return self._parse_response(respond)
         try:
             if (str(respond.headers['content-type']).startswith("text/html;")):
                 self.result = respond.text
