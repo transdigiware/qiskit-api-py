@@ -58,15 +58,6 @@ def get_backend_url(config, hub, group, project):
         return '/Network/{}/Groups/{}/Projects/{}/devices'.format(hub, group, project)
     return '/Backends'
 
-def clean_qobject_result(job):
-  if "qObject" in job:
-    job["qObject"]["id"] = job["id"]
-    if "status" not in job["qObject"]:
-      job["qObject"]["status"] = job["status"]
-    return job["qObject"]
-  else:
-    return job
-
 class _Credentials(object):
     """
     The Credential class to manage the tokens
@@ -766,10 +757,7 @@ class IBMQuantumExperience(object):
 
         job = self.req.get(url)
 
-        # To remove result object and add the attributes to data object
-        if "qObject" in job:
-          return clean_qobject_result(job)
-        elif 'qasms' in job: 
+        if 'qasms' in job: 
             for qasm in job['qasms']:
                 if ('result' in qasm) and ('data' in qasm['result']):
                     qasm['data'] = qasm['result']['data']
@@ -809,10 +797,7 @@ class IBMQuantumExperience(object):
   
         url_filter = url_filter + json.dumps(query)
         jobs = self.req.get(url, url_filter)
-        jobs_to_return = []
-        for job in jobs:
-          jobs_to_return.append(clean_qobject_result(job))
-        return jobs_to_return
+        return jobs
 
     def get_status_job(self, id_job, hub=None, group=None, project=None,
                        access_token=None, user_id=None):
