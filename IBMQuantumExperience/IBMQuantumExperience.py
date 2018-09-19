@@ -732,7 +732,7 @@ class IBMQuantumExperience(object):
         return job
 
     def get_job(self, id_job, hub=None, group=None, project=None,
-                access_token=None, user_id=None):
+                exclude_fields=None, access_token=None, user_id=None):
         """
         Get the information about a job, by its id
         """
@@ -755,7 +755,16 @@ class IBMQuantumExperience(object):
 
         url += '/' + id_job
 
-        job = self.req.get(url)
+        if exclude_fields is not None:
+          query = {
+            "fields": {}
+          }
+          for field in exclude_fields:
+            query['fields'][field] = False
+          url_filter = '&filter=' + json.dumps(query)
+          job = self.req.get(url, url_filter)
+        else:
+          job = self.req.get(url)
 
         if 'qasms' in job: 
             for qasm in job['qasms']:
