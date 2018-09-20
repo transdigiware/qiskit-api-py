@@ -884,6 +884,8 @@ class IBMQuantumExperience(object):
             ret['operational'] = bool(status['state'])
         if 'lengthQueue' in status:
             ret['pending_jobs'] = status['lengthQueue']
+        if 'busy' in status:
+            ret['dedicated'] = status['busy']
 
         ret['backend_name'] = backend_type
 
@@ -971,6 +973,9 @@ class IBMQuantumExperience(object):
                 if 'name' in backend:
                   backend['backend_name'] = backend['name']
                   del backend['name']
+                if 'version' in backend:
+                  backend['backend_version'] = backend['version']
+                  del backend['version']
                 if 'backend_version' not in backend:
                   backend['backend_version'] = ''
                 ret_backends.append(backend)
@@ -999,6 +1004,9 @@ class IBMQuantumExperience(object):
                 if 'name' in backend:
                   backend['backend_name'] = backend['name']
                   del backend['name']
+                if 'version' in backend:
+                  backend['backend_version'] = backend['version']
+                  del backend['version']
                 if 'backend_version' not in backend:
                   backend['backend_version'] = ''
                 ret_backends.append(backend)
