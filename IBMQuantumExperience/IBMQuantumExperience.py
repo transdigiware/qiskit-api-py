@@ -495,7 +495,7 @@ class IBMQuantumExperience(object):
         # Check for new-style backends
         backends = self.available_backends()
         for backend in backends:
-            if backend['name'] == original_backend:
+            if backend['backend_name'] == original_backend:
               return original_backend
         # backend unrecognized
         return None
@@ -881,13 +881,11 @@ class IBMQuantumExperience(object):
 
         ret = {}
         if 'state' in status:
-            ret['available'] = bool(status['state'])
-        if 'busy' in status:
-            ret['busy'] = bool(status['busy'])
+            ret['operational'] = bool(status['state'])
         if 'lengthQueue' in status:
             ret['pending_jobs'] = status['lengthQueue']
-        
-        ret['backend'] = backend_type
+
+        ret['backend_name'] = backend_type
 
         return ret
 
@@ -917,7 +915,7 @@ class IBMQuantumExperience(object):
         if not bool(ret):
           ret = {}
         else:
-          ret["backend"] = backend_type
+          ret["backend_name"] = backend_type
         return ret
 
     def backend_parameters(self, backend='ibmqx4', hub=None, access_token=None, user_id=None):
@@ -946,7 +944,7 @@ class IBMQuantumExperience(object):
         if not bool(ret):
           ret = {}
         else:
-          ret["backend"] = backend_type
+          ret["backend_name"] = backend_type
         return ret
 
     def available_backends(self, hub=None, group=None, project=None, access_token=None, user_id=None):
@@ -964,10 +962,20 @@ class IBMQuantumExperience(object):
             url = get_backend_url(self.config, hub, group, project)
 
             ret = self.req.get(url)
+            ret_backends = []
             if (ret is not None) and (isinstance(ret, dict)):
-                return []
-            return [backend for backend in ret
-                    if backend.get('status') == 'on']
+                return ret_backends
+            for backend in ret:
+              if backend.get('status') == 'on':
+                backend['local'] = False
+                if 'name' in backend:
+                  backend['backend_name'] = backend['name']
+                  del backend['name']
+                if 'backend_version' not in backend:
+                  backend['backend_version'] = ''
+                ret_backends.append(backend)
+            
+            return ret_backends
 
     def available_backend_simulators(self, access_token=None, user_id=None):
         """
@@ -981,11 +989,21 @@ class IBMQuantumExperience(object):
             raise CredentialsError('credentials invalid')
         else:
             ret = self.req.get('/Backends')
+            ret_backends = []
             if (ret is not None) and (isinstance(ret, dict)):
-                return []
-            return [backend for backend in ret
-                    if backend.get('status') == 'on' and
-                    backend.get('simulator') is True]
+                return ret_backends
+
+            for backend in ret:
+              if (backend.get('status') == 'on') and (backend.get('simulator') is True):
+                backend['local'] = False
+                if 'name' in backend:
+                  backend['backend_name'] = backend['name']
+                  del backend['name']
+                if 'backend_version' not in backend:
+                  backend['backend_version'] = ''
+                ret_backends.append(backend)
+
+            return ret_backends
 
     def get_my_credits(self, access_token=None, user_id=None):
         """

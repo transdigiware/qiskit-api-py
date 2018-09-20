@@ -164,7 +164,7 @@ measure q[2] -> f[0];
         Check the status of a real chip
         '''
         is_available = self.api.backend_status()
-        self.assertIsNotNone(is_available['available'])
+        self.assertIsNotNone(is_available['operational'])
 
     def test_api_backend_calibration(self):
         '''
