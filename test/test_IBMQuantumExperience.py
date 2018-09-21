@@ -180,6 +180,13 @@ measure q[2] -> f[0];
         parameters = self.api.backend_parameters()
         self.assertIsNotNone(parameters)
 
+    def test_api_backend_properties(self):
+        '''
+        Check the properties of calibration of a real chip
+        '''
+        properties = self.api.backend_properties()
+        self.assertIsNotNone(properties)
+
     def test_api_backends_availables(self):
         '''
         Check the backends availables

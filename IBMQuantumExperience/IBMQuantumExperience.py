@@ -949,6 +949,38 @@ class IBMQuantumExperience(object):
           ret["backend_name"] = backend_type
         return ret
 
+    def backend_properties(self, backend='ibmqx4', hub=None, access_token=None, user_id=None):
+        """
+        Get the parameters of calibration of a real chip
+        """
+        if access_token:
+            self.req.credential.set_token(access_token)
+        if user_id:
+            self.req.credential.set_user_id(user_id)
+        if not self.check_credentials():
+            raise CredentialsError('credentials invalid')
+
+        backend_type = self._check_backend(backend, 'calibration')
+
+        if not backend_type:
+            raise BadBackendError(backend)
+
+        if backend_type in self.__names_backend_simulator:
+            ret = {}
+            return ret
+
+        url = get_backend_stats_url(self.config, hub, backend_type)
+
+        method = '/stats'
+        if hub is not None:
+          method = '/properties'
+        ret = self.req.get(url + method)
+        if not bool(ret):
+          ret = {}
+        else:
+          ret["backend_name"] = backend_type
+        return ret
+
     def available_backends(self, hub=None, group=None, project=None, access_token=None, user_id=None):
         """
         Get the backends available to use in the QX Platform
