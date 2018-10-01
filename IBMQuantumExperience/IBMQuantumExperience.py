@@ -732,7 +732,7 @@ class IBMQuantumExperience(object):
         return job
 
     def get_job(self, id_job, hub=None, group=None, project=None,
-                exclude_fields=None, access_token=None, user_id=None):
+                exclude_fields=None, include_fields=None, access_token=None, user_id=None):
         """
         Get the information about a job, by its id
         """
@@ -760,11 +760,28 @@ class IBMQuantumExperience(object):
             "fields": {}
           }
           for field in exclude_fields:
+            if field == 'properties':
+              field = 'calibration'
             query['fields'][field] = False
           url_filter = '&filter=' + json.dumps(query)
           job = self.req.get(url, url_filter)
+        elif include_fields is not None:
+          query = {
+            "fields": {}
+          }
+          for field in include_fields:
+            if field == 'properties':
+              field = 'calibration'
+            query['fields'][field] = True
+          url_filter = '&filter=' + json.dumps(query)
+          print url_filter
+          job = self.req.get(url, url_filter)
         else:
           job = self.req.get(url)
+
+        if 'calibration' in job:
+          job['properties'] = job['calibration']
+          del job['calibration']
 
         if 'qasms' in job: 
             for qasm in job['qasms']:
@@ -806,6 +823,11 @@ class IBMQuantumExperience(object):
   
         url_filter = url_filter + json.dumps(query)
         jobs = self.req.get(url, url_filter)
+        for job in jobs:
+          if 'calibration' in job:
+            job['properties'] = job['calibration']
+            del job['calibration']
+
         return jobs
 
     def get_status_job(self, id_job, hub=None, group=None, project=None,
