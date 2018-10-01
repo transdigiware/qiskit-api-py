@@ -451,6 +451,17 @@ class IBMQuantumExperience(object):
     __names_backend_ibmqxv3 = ['ibmqx3']
     __names_backend_simulator = ['simulator', 'sim_trivial_2',
                                  'ibmqx_qasm_simulator', 'ibmq_qasm_simulator']
+    __names_backend_new_to_old = {
+        'ibmq_5_tenerife': 'ibmqx4',
+        'ibmq_16_rueschlikon': 'ibmqx5',
+        'ibmq_5_yorktown': 'ibmqx2'
+    }
+
+    __names_backend_old_to_new = {
+        'ibmqx4': 'ibmq_5_tenerife',
+        'ibmqx5': 'ibmq_16_rueschlikon',
+        'ibmqx2': 'ibmq_5_yorktown'
+    }
 
     def __init__(self, token=None, config=None, verify=True):
         """ If verify is set to false, ignore SSL certificate errors """
@@ -497,6 +508,9 @@ class IBMQuantumExperience(object):
         for backend in backends:
             if backend['backend_name'] == original_backend:
               return original_backend
+            elif (original_backend in self.__names_backend_old_to_new) and (backend['backend_name'] == self.__names_backend_old_to_new[original_backend]):
+              return backend['backend_name']
+              
         # backend unrecognized
         return None
 
@@ -689,10 +703,14 @@ class IBMQuantumExperience(object):
         if not self.check_credentials():
             return {"error": "Not credentials valid"}
 
-        backend_type = self._check_backend(backend, 'job')
+        backend_type_filtered = self._check_backend(backend, 'job')
 
+        backend_type = backend_type_filtered
         if not backend_type:
             raise BadBackendError(backend)
+
+        if backend_type in self.__names_backend_new_to_old:
+            backend_type = self.__names_backend_new_to_old[backend_type]
 
         if isinstance(job, (list, tuple)):
           qasms = job
@@ -728,6 +746,8 @@ class IBMQuantumExperience(object):
         url = get_job_url(self.config, hub, group, project)
         
         job = self.req.post(url, data=json.dumps(data))
+        if ('backend' in job) and ('name' in job['backend']):
+            job['backend']['name'] = backend_type_filtered
 
         return job
 
@@ -791,6 +811,9 @@ class IBMQuantumExperience(object):
                         qasm['data'][key] = qasm['result'][key]
                     del qasm['result']
 
+        if ('backend' in job) and ('name' in job['backend']) and (job['backend']['name'] in self.__names_backend_old_to_new):
+            job['backend']['name'] = self.__names_backend_old_to_new[job['backend']['name']]
+
         return job
 
     def get_jobs(self, limit=10, skip=0, backend=None, only_completed=False, filter=None, hub=None, group=None, project=None, access_token=None, user_id=None):
@@ -826,6 +849,8 @@ class IBMQuantumExperience(object):
           if 'calibration' in job:
             job['properties'] = job['calibration']
             del job['calibration']
+          if ('backend' in job) and ('name' in job['backend']) and (job['backend']['name'] in self.__names_backend_old_to_new):
+            job['backend']['name'] = self.__names_backend_old_to_new[job['backend']['name']]
 
         return jobs
 
@@ -1023,7 +1048,11 @@ class IBMQuantumExperience(object):
             for backend in ret:
               if backend.get('status') == 'on':
                 backend['local'] = False
-                if 'name' in backend:
+                if 'backendName' in backend:
+                  backend['backend_name'] = backend['backendName']
+                  del backend['backendName'] 
+                  del backend['name']
+                elif 'name' in backend:
                   backend['backend_name'] = backend['name']
                   del backend['name']
                 if 'version' in backend:
