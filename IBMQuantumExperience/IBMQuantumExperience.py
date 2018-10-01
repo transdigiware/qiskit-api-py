@@ -774,7 +774,6 @@ class IBMQuantumExperience(object):
               field = 'calibration'
             query['fields'][field] = True
           url_filter = '&filter=' + json.dumps(query)
-          print url_filter
           job = self.req.get(url, url_filter)
         else:
           job = self.req.get(url)
