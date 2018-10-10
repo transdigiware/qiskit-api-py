@@ -827,6 +827,39 @@ class IBMQuantumExperience(object):
 
         return status
 
+    def get_status_jobs(self, limit=10, skip=0, backend=None, filter=None, hub=None, group=None, project=None, access_token=None, user_id=None):
+        """
+        Get the information about the user jobs
+        """
+        if access_token:
+            self.req.credential.set_token(access_token)
+        if user_id:
+            self.req.credential.set_user_id(user_id)
+        if not self.check_credentials():
+            return {"error": "Not credentials valid"}
+
+        url = get_job_url(self.config, hub, group, project)
+        url_filter = '&filter='
+        query = {
+          "order": "creationDate DESC",
+          "limit": limit,
+          "skip": skip,
+          "where" : {}
+        }
+        if filter is not None:
+          query['where'] = filter
+        else:
+          if backend is not None:
+            query['where']['backend.name'] = backend
+  
+        url += '/status'
+
+        url_filter = url_filter + json.dumps(query)
+        
+        jobs = self.req.get(url, url_filter)
+
+        return jobs
+
     def cancel_job(self, id_job, hub=None, group=None, project=None,
                    access_token=None, user_id=None):
         """

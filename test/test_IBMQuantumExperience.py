@@ -159,6 +159,13 @@ measure q[2] -> f[0];
         jobs = self.api.get_jobs(2)
         self.assertEqual(len(jobs), 2)
 
+    def test_api_get_status_jobs(self):
+        '''
+        Check get status jobs by user authenticated
+        '''
+        jobs = self.api.get_status_jobs(1)
+        self.assertEqual(len(jobs), 1)
+
     def test_api_backend_status(self):
         '''
         Check the status of a real chip
