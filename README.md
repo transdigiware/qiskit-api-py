@@ -1,3 +1,12 @@
+# DEPRECATION WARNING
+
+This repository and the `qiskit-api-py` package are deprecated, and no longer supported.
+
+For the latest version, please refer to the [qiskit-ibmq-provider](https://github.com/Qiskit/qiskit-ibmq-provider).
+
+The newest version behaves as a formal pluggable [provider](https://qiskit.org/documentation/the_ibmq_provider.html) for Qiskit.
+
+
 # Python API Client IBM Quantum Experience [![Build Status](https://travis-ci.org/QISKit/qiskit-api-py.svg?branch=master)](https://travis-ci.org/QISKit/qiskit-api-py)
 
 The official API Client to use [IBM Quantum Experience](https://quantumexperience.ng.bluemix.net/) in Python.
